@@ -36,6 +36,7 @@ public class User {
 
     private String phone;
 
+    @Lob
     private String avatar;
     private String address;
     private String city;

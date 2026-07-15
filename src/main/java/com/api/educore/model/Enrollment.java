@@ -39,6 +39,7 @@ public class Enrollment {
     private String enrollmentType = "MATRICULA";
 
     private LocalDate enrollmentDate;
+    @Lob
     private String photo;
     private String previousSchool;
 

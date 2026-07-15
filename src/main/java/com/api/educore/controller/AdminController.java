@@ -5,9 +5,11 @@ import com.api.educore.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -22,21 +24,20 @@ public class AdminController {
     @PostMapping("/reset")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> resetData() {
-        userRepository.deleteAll();
-        schoolRepository.deleteAll();
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByEmail(email).orElse(null);
+        if (currentUser == null || currentUser.getSchool() == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Usuario ou escola nao encontrada"));
+        }
 
-        School school = School.builder()
-                .name("ACADEMIA MAWA")
-                .nif("541789236")
-                .address("Luanda, Angola")
-                .city("Luanda")
-                .country("Angola")
-                .email("info@academiamawa.edu.ao")
-                .phone("+244 923 456 789")
-                .motto("Educacao de excelencia")
-                .active(true)
-                .build();
-        school = schoolRepository.save(school);
+        School school = currentUser.getSchool();
+
+        List<User> schoolUsers = userRepository.findBySchoolId(school.getId());
+        for (User u : schoolUsers) {
+            if (!u.getId().equals(currentUser.getId())) {
+                userRepository.delete(u);
+            }
+        }
 
         createUser("Admin Mawa", "admin.mawa@gmail.com", "Admin123!", UserRole.ADMIN, school);
         createUser("Secretario Mawa", "sec.mawa@gmail.com", "Secretario123!", UserRole.SECRETARIO, school);
@@ -47,6 +48,9 @@ public class AdminController {
     }
 
     private void createUser(String name, String email, String password, UserRole role, School school) {
+        if (userRepository.existsByEmail(email)) {
+            return;
+        }
         User user = User.builder()
                 .name(name)
                 .email(email)

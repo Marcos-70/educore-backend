@@ -25,6 +25,7 @@ public class School {
     private String address;
     private String email;
     private String phone;
+    @Lob
     private String logo;
     private String city;
     private String country;

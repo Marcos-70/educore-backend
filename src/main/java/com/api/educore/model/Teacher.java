@@ -49,6 +49,7 @@ public class Teacher {
     private String subject;
     private String address;
     private String bio;
+    @Lob
     private String photo;
 
     @CreationTimestamp
