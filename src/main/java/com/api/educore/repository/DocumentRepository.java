@@ -11,4 +11,5 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
     List<Document> findByStatus(DocumentStatus status);
     List<Document> findByModule(DocumentModule module);
     List<Document> findByTitleContainingIgnoreCase(String title);
+    List<Document> findBySchoolId(Long schoolId);
 }

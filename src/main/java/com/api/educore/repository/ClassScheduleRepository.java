@@ -9,4 +9,5 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
     List<ClassSchedule> findBySchoolClassId(Long schoolClassId);
     List<ClassSchedule> findByTeacherId(Long teacherId);
     List<ClassSchedule> findByDayOfWeek(String dayOfWeek);
+    List<ClassSchedule> findBySchoolId(Long schoolId);
 }

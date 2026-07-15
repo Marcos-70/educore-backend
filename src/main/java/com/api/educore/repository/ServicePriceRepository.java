@@ -14,4 +14,5 @@ public interface ServicePriceRepository extends JpaRepository<ServicePrice, Long
     Optional<ServicePrice> findFirstByCategoryAndActiveTrueOrderByPriceDesc(ServiceCategory category);
     Optional<ServicePrice> findFirstByCategoryAndClassLevelAndActiveTrueOrderByPriceDesc(ServiceCategory category, ClassLevel classLevel);
     Optional<ServicePrice> findFirstByCategoryAndClassLevelIsNullAndActiveTrueOrderByPriceDesc(ServiceCategory category);
+    List<ServicePrice> findBySchoolId(Long schoolId);
 }

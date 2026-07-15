@@ -9,4 +9,5 @@ import java.util.List;
 public interface CalendarEventRepository extends JpaRepository<CalendarEvent, Long> {
     List<CalendarEvent> findByAcademicYearId(Long academicYearId);
     List<CalendarEvent> findByType(CalendarEventType type);
+    List<CalendarEvent> findBySchoolId(Long schoolId);
 }

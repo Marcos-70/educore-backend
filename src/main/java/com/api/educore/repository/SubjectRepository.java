@@ -10,4 +10,5 @@ public interface SubjectRepository extends JpaRepository<Subject, Long> {
     List<Subject> findByClassLevel(ClassLevel classLevel);
     List<Subject> findByActiveTrue();
     List<Subject> findByNameContainingIgnoreCase(String name);
+    List<Subject> findBySchoolId(Long schoolId);
 }

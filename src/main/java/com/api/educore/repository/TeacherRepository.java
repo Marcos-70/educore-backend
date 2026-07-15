@@ -10,4 +10,5 @@ public interface TeacherRepository extends JpaRepository<Teacher, Long> {
     List<Teacher> findByStatus(Status status);
     List<Teacher> findByNameContainingIgnoreCase(String name);
     long countByStatus(Status status);
+    List<Teacher> findBySchoolId(Long schoolId);
 }

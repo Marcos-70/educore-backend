@@ -9,4 +9,5 @@ import java.util.List;
 public interface DriverRepository extends JpaRepository<Driver, Long> {
     List<Driver> findByStatus(Status status);
     List<Driver> findByNameContainingIgnoreCase(String name);
+    List<Driver> findBySchoolId(Long schoolId);
 }

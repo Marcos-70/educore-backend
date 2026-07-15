@@ -9,4 +9,5 @@ import java.util.List;
 public interface LibraryReaderRepository extends JpaRepository<LibraryReader, Long> {
     List<LibraryReader> findByStatus(Status status);
     List<LibraryReader> findByNameContainingIgnoreCase(String name);
+    List<LibraryReader> findBySchoolId(Long schoolId);
 }

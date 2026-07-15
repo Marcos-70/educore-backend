@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface TransportRouteRepository extends JpaRepository<TransportRoute, Long> {
     List<TransportRoute> findByStatus(Status status);
+    List<TransportRoute> findBySchoolId(Long schoolId);
 }

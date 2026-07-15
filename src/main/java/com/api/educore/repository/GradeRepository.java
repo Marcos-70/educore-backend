@@ -11,4 +11,5 @@ public interface GradeRepository extends JpaRepository<Grade, Long> {
     List<Grade> findByAssessmentId(Long assessmentId);
     Optional<Grade> findByStudentIdAndAssessmentId(Long studentId, Long assessmentId);
     List<Grade> findByStudentIdAndAssessmentSchoolClassId(Long studentId, Long schoolClassId);
+    List<Grade> findBySchoolId(Long schoolId);
 }

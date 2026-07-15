@@ -11,4 +11,5 @@ public interface LibraryLoanRepository extends JpaRepository<LibraryLoan, Long> 
     List<LibraryLoan> findByReaderId(Long readerId);
     List<LibraryLoan> findByBookId(Long bookId);
     long countByReaderIdAndStatus(Long readerId, LoanStatus status);
+    List<LibraryLoan> findBySchoolId(Long schoolId);
 }

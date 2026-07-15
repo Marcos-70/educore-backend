@@ -10,4 +10,5 @@ public interface LibraryBookRepository extends JpaRepository<LibraryBook, Long> 
     List<LibraryBook> findByStatus(BookStatus status);
     List<LibraryBook> findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCase(String title, String author);
     List<LibraryBook> findByCategory(String category);
+    List<LibraryBook> findBySchoolId(Long schoolId);
 }

@@ -9,4 +9,5 @@ import java.util.List;
 public interface BusRepository extends JpaRepository<Bus, Long> {
     List<Bus> findByStatus(Status status);
     List<Bus> findByPlateNumberContaining(String plateNumber);
+    List<Bus> findBySchoolId(Long schoolId);
 }

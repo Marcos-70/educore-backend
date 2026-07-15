@@ -41,4 +41,5 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     boolean existsByStudentIdAndMonthInField(@Param("studentId") Long studentId, @Param("month") String month);
 
     List<Payment> findByStudentIdAndCancelledFalse(Long studentId);
+    List<Payment> findBySchoolId(Long schoolId);
 }
