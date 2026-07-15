@@ -1,10 +1,14 @@
 package com.api.educore.service;
 
 import com.api.educore.dto.TeacherDTO;
+import com.api.educore.model.School;
 import com.api.educore.model.Status;
 import com.api.educore.model.Teacher;
+import com.api.educore.model.User;
 import com.api.educore.repository.TeacherRepository;
+import com.api.educore.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,9 +19,18 @@ import java.util.stream.Collectors;
 public class TeacherService {
 
     private final TeacherRepository teacherRepository;
+    private final UserRepository userRepository;
+
+    private School getCurrentSchool() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElse(null);
+        return user != null ? user.getSchool() : null;
+    }
 
     public List<TeacherDTO> findAll() {
-        return teacherRepository.findAll().stream()
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return teacherRepository.findBySchoolId(school.getId()).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
@@ -29,12 +42,18 @@ public class TeacherService {
     }
 
     public List<TeacherDTO> search(String term) {
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
         return teacherRepository.findByNameContainingIgnoreCase(term)
-                .stream().map(this::toDTO).collect(Collectors.toList());
+                .stream()
+                .filter(t -> t.getSchool() != null && t.getSchool().getId().equals(school.getId()))
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
 
     public TeacherDTO create(TeacherDTO dto) {
         Teacher teacher = toEntity(dto);
+        teacher.setSchool(getCurrentSchool());
         return toDTO(teacherRepository.save(teacher));
     }
 
@@ -64,11 +83,18 @@ public class TeacherService {
     }
 
     public long count() {
-        return teacherRepository.count();
+        School school = getCurrentSchool();
+        if (school == null) return 0;
+        return teacherRepository.findBySchoolId(school.getId()).size();
     }
 
     public long countByStatus(Status status) {
-        return teacherRepository.countByStatus(status);
+        School school = getCurrentSchool();
+        if (school == null) return 0;
+        return teacherRepository.findByStatus(status)
+                .stream()
+                .filter(t -> t.getSchool() != null && t.getSchool().getId().equals(school.getId()))
+                .count();
     }
 
     private TeacherDTO toDTO(Teacher t) {

@@ -1,12 +1,16 @@
 package com.api.educore.service;
 
 import com.api.educore.dto.ClassDTO;
+import com.api.educore.model.School;
 import com.api.educore.model.SchoolClass;
 import com.api.educore.model.Teacher;
+import com.api.educore.model.User;
+import com.api.educore.repository.EnrollmentRepository;
 import com.api.educore.repository.SchoolClassRepository;
 import com.api.educore.repository.TeacherRepository;
-import com.api.educore.repository.EnrollmentRepository;
+import com.api.educore.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,9 +23,18 @@ public class ClassService {
     private final SchoolClassRepository classRepository;
     private final TeacherRepository teacherRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final UserRepository userRepository;
+
+    private School getCurrentSchool() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElse(null);
+        return user != null ? user.getSchool() : null;
+    }
 
     public List<ClassDTO> findAll() {
-        return classRepository.findAll().stream()
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return classRepository.findBySchoolId(school.getId()).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
@@ -34,6 +47,7 @@ public class ClassService {
 
     public ClassDTO create(ClassDTO dto) {
         SchoolClass sc = toEntity(dto);
+        sc.setSchool(getCurrentSchool());
         return toDTO(classRepository.save(sc));
     }
 
@@ -60,7 +74,9 @@ public class ClassService {
     }
 
     public long count() {
-        return classRepository.count();
+        School school = getCurrentSchool();
+        if (school == null) return 0;
+        return classRepository.findBySchoolId(school.getId()).size();
     }
 
     private ClassDTO toDTO(SchoolClass sc) {
@@ -75,9 +91,7 @@ public class ClassService {
         dto.setCapacity(sc.getCapacity());
         dto.setShift(sc.getShift());
         dto.setAcademicYear(sc.getAcademicYear());
-        long enrolled = enrollmentRepository.findAll().stream()
-                .filter(e -> e.getSchoolClass() != null && e.getSchoolClass().getId().equals(sc.getId()))
-                .count();
+        long enrolled = enrollmentRepository.findBySchoolClassId(sc.getId()).size();
         dto.setEnrolledCount((int) enrolled);
         return dto;
     }

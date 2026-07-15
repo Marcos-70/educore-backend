@@ -1,10 +1,14 @@
 package com.api.educore.service;
 
 import com.api.educore.dto.StudentDTO;
-import com.api.educore.model.Student;
+import com.api.educore.model.School;
 import com.api.educore.model.Status;
+import com.api.educore.model.Student;
+import com.api.educore.model.User;
 import com.api.educore.repository.StudentRepository;
+import com.api.educore.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,9 +20,18 @@ import java.util.stream.Collectors;
 public class StudentService {
 
     private final StudentRepository studentRepository;
+    private final UserRepository userRepository;
+
+    private School getCurrentSchool() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElse(null);
+        return user != null ? user.getSchool() : null;
+    }
 
     public List<StudentDTO> findAll() {
-        return studentRepository.findAll().stream()
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return studentRepository.findBySchoolId(school.getId()).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
@@ -30,17 +43,29 @@ public class StudentService {
     }
 
     public List<StudentDTO> search(String term) {
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
         return studentRepository.findByFirstNameContainingOrLastNameContaining(term, term)
-                .stream().map(this::toDTO).collect(Collectors.toList());
+                .stream()
+                .filter(s -> s.getSchool() != null && s.getSchool().getId().equals(school.getId()))
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
 
     public List<StudentDTO> findByStatus(Status status) {
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
         return studentRepository.findByStatus(status)
-                .stream().map(this::toDTO).collect(Collectors.toList());
+                .stream()
+                .filter(s -> s.getSchool() != null && s.getSchool().getId().equals(school.getId()))
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
 
     public StudentDTO create(StudentDTO dto) {
         Student student = toEntity(dto);
+        School school = getCurrentSchool();
+        student.setSchool(school);
         student.setStudentNumber("EDU-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         return toDTO(studentRepository.save(student));
     }
@@ -76,11 +101,18 @@ public class StudentService {
     }
 
     public long count() {
-        return studentRepository.count();
+        School school = getCurrentSchool();
+        if (school == null) return 0;
+        return studentRepository.findBySchoolId(school.getId()).size();
     }
 
     public long countByStatus(Status status) {
-        return studentRepository.countByStatus(status);
+        School school = getCurrentSchool();
+        if (school == null) return 0;
+        return studentRepository.findByStatus(status)
+                .stream()
+                .filter(s -> s.getSchool() != null && s.getSchool().getId().equals(school.getId()))
+                .count();
     }
 
     private StudentDTO toDTO(Student s) {

@@ -4,6 +4,7 @@ import com.api.educore.dto.*;
 import com.api.educore.model.*;
 import com.api.educore.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,10 +20,19 @@ public class AcademicService {
     private final CourseRepository courseRepository;
     private final SubjectRepository subjectRepository;
     private final CalendarEventRepository calendarEventRepository;
+    private final UserRepository userRepository;
+
+    private School getCurrentSchool() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElse(null);
+        return user != null ? user.getSchool() : null;
+    }
 
     // Academic Years
     public List<AcademicYearDTO> findAllYears() {
-        return academicYearRepository.findAll().stream()
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return academicYearRepository.findBySchoolId(school.getId()).stream()
                 .map(this::toYearDTO)
                 .collect(Collectors.toList());
     }
@@ -34,6 +44,7 @@ public class AcademicService {
         year.setStartDate(dto.getStartDate());
         year.setEndDate(dto.getEndDate());
         year.setActive(dto.isActive());
+        year.setSchool(getCurrentSchool());
         return toYearDTO(academicYearRepository.save(year));
     }
 
@@ -49,7 +60,11 @@ public class AcademicService {
 
     @Transactional
     public void setActiveYear(Long id) {
-        academicYearRepository.findAll().forEach(y -> { y.setActive(false); academicYearRepository.save(y); });
+        School school = getCurrentSchool();
+        if (school != null) {
+            academicYearRepository.findBySchoolId(school.getId())
+                    .forEach(y -> { y.setActive(false); academicYearRepository.save(y); });
+        }
         AcademicYear year = academicYearRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ano letivo não encontrado"));
         year.setActive(true);
@@ -76,6 +91,7 @@ public class AcademicService {
         AcademicYear year = academicYearRepository.findById(dto.getAcademicYearId())
                 .orElseThrow(() -> new RuntimeException("Ano letivo não encontrado"));
         t.setAcademicYear(year);
+        t.setSchool(getCurrentSchool());
         return toTrimesterDTO(trimesterRepository.save(t));
     }
 
@@ -85,13 +101,16 @@ public class AcademicService {
 
     // Courses
     public List<CourseDTO> findAllCourses() {
-        return courseRepository.findAll().stream()
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return courseRepository.findBySchoolId(school.getId()).stream()
                 .map(this::toCourseDTO).collect(Collectors.toList());
     }
 
     public CourseDTO createCourse(CourseDTO dto) {
         Course c = new Course();
         mapCourse(dto, c);
+        c.setSchool(getCurrentSchool());
         return toCourseDTO(courseRepository.save(c));
     }
 
@@ -108,13 +127,16 @@ public class AcademicService {
 
     // Subjects
     public List<SubjectDTO> findAllSubjects() {
-        return subjectRepository.findAll().stream()
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return subjectRepository.findBySchoolId(school.getId()).stream()
                 .map(this::toSubjectDTO).collect(Collectors.toList());
     }
 
     public SubjectDTO createSubject(SubjectDTO dto) {
         Subject s = new Subject();
         mapSubject(dto, s);
+        s.setSchool(getCurrentSchool());
         return toSubjectDTO(subjectRepository.save(s));
     }
 
@@ -131,7 +153,9 @@ public class AcademicService {
 
     // Calendar Events
     public List<CalendarEventDTO> findAllEvents() {
-        return calendarEventRepository.findAll().stream()
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return calendarEventRepository.findBySchoolId(school.getId()).stream()
                 .map(this::toEventDTO).collect(Collectors.toList());
     }
 
@@ -142,6 +166,7 @@ public class AcademicService {
         e.setEndDate(dto.getEndDate());
         e.setType(dto.getType());
         e.setDescription(dto.getDescription());
+        e.setSchool(getCurrentSchool());
         if (dto.getAcademicYearId() != null) {
             AcademicYear year = academicYearRepository.findById(dto.getAcademicYearId()).orElse(null);
             e.setAcademicYear(year);

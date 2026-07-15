@@ -5,6 +5,7 @@ import com.api.educore.dto.GradeDTO;
 import com.api.educore.model.*;
 import com.api.educore.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,10 +21,20 @@ public class GradeService {
     private final SubjectRepository subjectRepository;
     private final StudentRepository studentRepository;
     private final TrimesterRepository trimesterRepository;
+    private final UserRepository userRepository;
+
+    private School getCurrentSchool() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElse(null);
+        return user != null ? user.getSchool() : null;
+    }
 
     public List<AssessmentDTO> findAssessments(Long classId, Long subjectId) {
+        School school = getCurrentSchool();
         return assessmentRepository.findBySchoolClassIdAndSubjectId(classId, subjectId)
-                .stream().map(this::toAssessmentDTO).collect(Collectors.toList());
+                .stream()
+                .filter(a -> school == null || (a.getSchool() != null && a.getSchool().getId().equals(school.getId())))
+                .map(this::toAssessmentDTO).collect(Collectors.toList());
     }
 
     public AssessmentDTO createAssessment(AssessmentDTO dto) {
@@ -39,6 +50,7 @@ public class GradeService {
         Subject subject = subjectRepository.findById(dto.getSubjectId())
                 .orElseThrow(() -> new RuntimeException("Disciplina não encontrada"));
         a.setSubject(subject);
+        a.setSchool(getCurrentSchool());
         if (dto.getTrimesterId() != null) {
             Trimester t = trimesterRepository.findById(dto.getTrimesterId()).orElse(null);
             a.setTrimester(t);
@@ -51,13 +63,19 @@ public class GradeService {
     }
 
     public List<GradeDTO> findGradesByAssessment(Long assessmentId) {
+        School school = getCurrentSchool();
         return gradeRepository.findByAssessmentId(assessmentId)
-                .stream().map(this::toGradeDTO).collect(Collectors.toList());
+                .stream()
+                .filter(g -> school == null || (g.getSchool() != null && g.getSchool().getId().equals(school.getId())))
+                .map(this::toGradeDTO).collect(Collectors.toList());
     }
 
     public List<GradeDTO> findGradesByStudent(Long studentId) {
+        School school = getCurrentSchool();
         return gradeRepository.findByStudentId(studentId)
-                .stream().map(this::toGradeDTO).collect(Collectors.toList());
+                .stream()
+                .filter(g -> school == null || (g.getSchool() != null && g.getSchool().getId().equals(school.getId())))
+                .map(this::toGradeDTO).collect(Collectors.toList());
     }
 
     public GradeDTO saveGrade(GradeDTO dto) {
@@ -72,6 +90,7 @@ public class GradeService {
         grade.setAssessment(assessment);
         grade.setScore(dto.getScore());
         grade.setObservations(dto.getObservations());
+        grade.setSchool(getCurrentSchool());
         return toGradeDTO(gradeRepository.save(grade));
     }
 

@@ -4,6 +4,7 @@ import com.api.educore.dto.ScheduleDTO;
 import com.api.educore.model.*;
 import com.api.educore.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,20 +18,35 @@ public class ScheduleService {
     private final SchoolClassRepository classRepository;
     private final SubjectRepository subjectRepository;
     private final TeacherRepository teacherRepository;
+    private final UserRepository userRepository;
 
-    public List<ScheduleDTO> findByClass(Long classId) {
-        return scheduleRepository.findBySchoolClassId(classId)
-                .stream().map(this::toDTO).collect(Collectors.toList());
-    }
-
-    public List<ScheduleDTO> findByTeacher(Long teacherId) {
-        return scheduleRepository.findByTeacherId(teacherId)
-                .stream().map(this::toDTO).collect(Collectors.toList());
+    private School getCurrentSchool() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElse(null);
+        return user != null ? user.getSchool() : null;
     }
 
     public List<ScheduleDTO> findAll() {
-        return scheduleRepository.findAll()
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return scheduleRepository.findBySchoolId(school.getId())
                 .stream().map(this::toDTO).collect(Collectors.toList());
+    }
+
+    public List<ScheduleDTO> findByClass(Long classId) {
+        School school = getCurrentSchool();
+        return scheduleRepository.findBySchoolClassId(classId)
+                .stream()
+                .filter(s -> school == null || (s.getSchool() != null && s.getSchool().getId().equals(school.getId())))
+                .map(this::toDTO).collect(Collectors.toList());
+    }
+
+    public List<ScheduleDTO> findByTeacher(Long teacherId) {
+        School school = getCurrentSchool();
+        return scheduleRepository.findByTeacherId(teacherId)
+                .stream()
+                .filter(s -> school == null || (s.getSchool() != null && s.getSchool().getId().equals(school.getId())))
+                .map(this::toDTO).collect(Collectors.toList());
     }
 
     public ScheduleDTO create(ScheduleDTO dto) {
@@ -44,6 +60,7 @@ public class ScheduleService {
         schedule.setSchoolClass(sc);
         schedule.setSubject(subject);
         schedule.setTeacher(teacher);
+        schedule.setSchool(sc.getSchool());
         schedule.setDayOfWeek(dto.getDayOfWeek());
         schedule.setStartTime(dto.getStartTime());
         schedule.setEndTime(dto.getEndTime());
