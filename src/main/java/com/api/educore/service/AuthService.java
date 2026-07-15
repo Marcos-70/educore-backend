@@ -54,11 +54,15 @@ public class AuthService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email já cadastrado");
         }
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByEmail(email).orElse(null);
+
         User user = User.builder()
                 .name(request.getName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(UserRole.SECRETARIO)
+                .role(request.getRole() != null ? UserRole.valueOf(request.getRole()) : UserRole.SECRETARIO)
+                .school(currentUser != null ? currentUser.getSchool() : null)
                 .active(true)
                 .build();
         return userRepository.save(user);

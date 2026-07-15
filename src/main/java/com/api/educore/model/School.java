@@ -26,6 +26,12 @@ public class School {
     private String email;
     private String phone;
     private String logo;
+    private String city;
+    private String country;
+    private String website;
+    private String directorName;
+    private String directorEmail;
+    private String motto;
 
     @Column(nullable = false)
     private boolean active = true;

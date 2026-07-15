@@ -37,6 +37,12 @@ public class User {
     private String phone;
 
     private String avatar;
+    private String address;
+    private String city;
+    private String country;
+    private String biNumber;
+    private String dateOfBirth;
+    private String gender;
 
     @Column(nullable = false)
     private boolean active = true;

@@ -19,4 +19,6 @@ public class RegisterRequest {
     @Size(min = 8)
     @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).*$", message = "A senha deve conter pelo menos 8 caracteres, incluindo uma letra maiuscula, uma minuscula e um numero")
     private String password;
+
+    private String role;
 }
