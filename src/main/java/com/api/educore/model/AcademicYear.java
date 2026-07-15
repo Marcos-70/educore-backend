@@ -38,6 +38,10 @@ public class AcademicYear {
     @Builder.Default
     private List<Trimester> trimesters = new ArrayList<>();
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "school_id")
+    private School school;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

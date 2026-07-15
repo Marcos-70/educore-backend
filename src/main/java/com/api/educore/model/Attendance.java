@@ -40,6 +40,10 @@ public class Attendance {
     @JoinColumn(name = "teacher_id")
     private Teacher recordedBy;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "school_id")
+    private School school;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

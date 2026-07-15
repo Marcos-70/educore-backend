@@ -38,6 +38,10 @@ public class Trimester {
     @JoinColumn(name = "academic_year_id", nullable = false)
     private AcademicYear academicYear;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "school_id")
+    private School school;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

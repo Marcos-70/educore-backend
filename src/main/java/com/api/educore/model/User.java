@@ -41,6 +41,10 @@ public class User {
     @Column(nullable = false)
     private boolean active = true;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "school_id")
+    private School school;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

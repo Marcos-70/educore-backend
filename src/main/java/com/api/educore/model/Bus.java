@@ -48,6 +48,10 @@ public class Bus {
     private LocalDate acquisitionDate;
     private String notes;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "school_id")
+    private School school;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

@@ -64,6 +64,10 @@ public class Driver {
     private String notes;
     private String adminNotes;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "school_id")
+    private School school;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

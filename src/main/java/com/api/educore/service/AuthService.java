@@ -34,7 +34,8 @@ public class AuthService {
             throw new RuntimeException("Conta desativada");
         }
 
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name(),
+                user.getSchool() != null ? user.getSchool().getId() : null);
 
         return AuthResponse.builder()
                 .token(token)
@@ -42,6 +43,8 @@ public class AuthService {
                 .name(user.getName())
                 .role(user.getRole().name())
                 .userId(user.getId())
+                .schoolId(user.getSchool() != null ? user.getSchool().getId() : null)
+                .schoolName(user.getSchool() != null ? user.getSchool().getName() : null)
                 .build();
     }
 

@@ -39,6 +39,10 @@ public class Teacher {
     @Column(nullable = false)
     private Status status = Status.ACTIVE;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "school_id")
+    private School school;
+
     private String qualification;
     private String formationArea;
     private String department;

@@ -8,41 +8,27 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "subjects")
+@Table(name = "schools")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Subject {
-
+public class School {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
-    private String code;
-
-    @Column(nullable = false)
     private String name;
 
-    private String abbrevName;
-    private String description;
-
-    @Enumerated(EnumType.STRING)
-    private ClassLevel classLevel;
-
-    @Enumerated(EnumType.STRING)
-    private SubjectType type;
-
-    private double minimumGrade;
-    private int minimumAttendance;
+    private String nif;
+    private String address;
+    private String email;
+    private String phone;
+    private String logo;
 
     @Column(nullable = false)
     private boolean active = true;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "school_id")
-    private School school;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
