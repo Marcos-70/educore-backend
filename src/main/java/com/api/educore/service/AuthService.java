@@ -2,12 +2,15 @@ package com.api.educore.service;
 
 import com.api.educore.dto.AuthRequest;
 import com.api.educore.dto.AuthResponse;
+import com.api.educore.dto.ChangePasswordRequest;
 import com.api.educore.dto.RegisterRequest;
+import com.api.educore.dto.UpdateProfileRequest;
 import com.api.educore.model.User;
 import com.api.educore.model.UserRole;
 import com.api.educore.repository.UserRepository;
 import com.api.educore.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -54,5 +57,29 @@ public class AuthService {
                 .active(true)
                 .build();
         return userRepository.save(user);
+    }
+
+    public void changePassword(ChangePasswordRequest request) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuario nao encontrado"));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new RuntimeException("Senha atual incorreta");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
+
+    public void updateProfile(UpdateProfileRequest request) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuario nao encontrado"));
+
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPhone(request.getPhone());
+        userRepository.save(user);
     }
 }
