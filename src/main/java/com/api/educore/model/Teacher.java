@@ -49,7 +49,7 @@ public class Teacher {
     private String subject;
     private String address;
     private String bio;
-    @Lob
+    @Column(columnDefinition = "TEXT")
     private String photo;
 
     @CreationTimestamp

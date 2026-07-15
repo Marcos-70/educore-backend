@@ -26,7 +26,7 @@ public class School {
     private String address;
     private String email;
     private String phone;
-    @Lob
+    @Column(columnDefinition = "TEXT")
     private String logo;
     private String city;
     private String country;

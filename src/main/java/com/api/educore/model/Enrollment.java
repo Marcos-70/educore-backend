@@ -39,7 +39,7 @@ public class Enrollment {
     private String enrollmentType = "MATRICULA";
 
     private LocalDate enrollmentDate;
-    @Lob
+    @Column(columnDefinition = "TEXT")
     private String photo;
     private String previousSchool;
 

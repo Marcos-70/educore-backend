@@ -36,7 +36,7 @@ public class User {
 
     private String phone;
 
-    @Lob
+    @Column(columnDefinition = "TEXT")
     private String avatar;
     private String address;
     private String city;
