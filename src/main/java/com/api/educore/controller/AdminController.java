@@ -43,7 +43,7 @@ public class AdminController {
         createUser("Professor Mawa", "prof.mawa@gmail.com", "Professor123!", UserRole.PROFESSOR, school);
         createUser("Director Mawa", "dir.mawa@gmail.com", "Director123!", UserRole.DIRECTOR, school);
 
-        return ResponseEntity.ok(Map.of("message", "Dados reiniciados com sucesso. Credenciais: admin.mawa@gmail.com / Admin123!"));
+        return ResponseEntity.ok(Map.of("message", "Dados reiniciados com sucesso. Faca login com as credenciais do administrador."));
     }
 
     private void createUser(String name, String email, String password, UserRole role, School school) {
