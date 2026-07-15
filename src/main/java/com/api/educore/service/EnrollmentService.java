@@ -4,6 +4,7 @@ import com.api.educore.dto.EnrollmentDTO;
 import com.api.educore.model.*;
 import com.api.educore.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -17,9 +18,18 @@ public class EnrollmentService {
     private final EnrollmentRepository enrollmentRepository;
     private final StudentRepository studentRepository;
     private final SchoolClassRepository classRepository;
+    private final UserRepository userRepository;
+
+    private School getCurrentSchool() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElse(null);
+        return user != null ? user.getSchool() : null;
+    }
 
     public List<EnrollmentDTO> findAll() {
-        return enrollmentRepository.findAll().stream()
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return enrollmentRepository.findBySchoolId(school.getId()).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
@@ -44,10 +54,11 @@ public class EnrollmentService {
 
         Enrollment enrollment = new Enrollment();
         enrollment.setStudent(student);
+        enrollment.setSchool(getCurrentSchool());
         if (dto.getClassId() != null) {
             SchoolClass sc = classRepository.findById(dto.getClassId())
                     .orElseThrow(() -> new RuntimeException("Turma não encontrada"));
-            long currentEnrolled = enrollmentRepository.findAll().stream()
+            long currentEnrolled = enrollmentRepository.findBySchoolId(getCurrentSchool().getId()).stream()
                     .filter(e -> e.getSchoolClass() != null && e.getSchoolClass().getId().equals(sc.getId()))
                     .filter(e -> e.getStatus() != EnrollmentStatus.REJECTED && e.getStatus() != EnrollmentStatus.CANCELLED)
                     .count();
@@ -98,11 +109,17 @@ public class EnrollmentService {
     }
 
     public long count() {
-        return enrollmentRepository.count();
+        School school = getCurrentSchool();
+        if (school == null) return 0;
+        return enrollmentRepository.findBySchoolId(school.getId()).size();
     }
 
     public long countByStatus(EnrollmentStatus status) {
-        return enrollmentRepository.countByStatus(status);
+        School school = getCurrentSchool();
+        if (school == null) return 0;
+        return enrollmentRepository.findBySchoolId(school.getId()).stream()
+                .filter(e -> e.getStatus() == status)
+                .count();
     }
 
     private EnrollmentDTO toDTO(Enrollment e) {

@@ -3,8 +3,12 @@ package com.api.educore.service;
 import com.api.educore.dto.DocumentDTO;
 import com.api.educore.model.Document;
 import com.api.educore.model.DocumentStatus;
+import com.api.educore.model.School;
+import com.api.educore.model.User;
 import com.api.educore.repository.DocumentRepository;
+import com.api.educore.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,9 +19,18 @@ import java.util.stream.Collectors;
 public class DocumentService {
 
     private final DocumentRepository documentRepository;
+    private final UserRepository userRepository;
+
+    private School getCurrentSchool() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElse(null);
+        return user != null ? user.getSchool() : null;
+    }
 
     public List<DocumentDTO> findAll() {
-        return documentRepository.findAll().stream().map(this::toDTO).collect(Collectors.toList());
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return documentRepository.findBySchoolId(school.getId()).stream().map(this::toDTO).collect(Collectors.toList());
     }
 
     public List<DocumentDTO> findByStatus(DocumentStatus status) {
@@ -26,6 +39,7 @@ public class DocumentService {
 
     public DocumentDTO create(DocumentDTO dto) {
         Document doc = new Document();
+        doc.setSchool(getCurrentSchool());
         mapDocument(dto, doc);
         return toDTO(documentRepository.save(doc));
     }

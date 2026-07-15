@@ -2,10 +2,14 @@ package com.api.educore.service;
 
 import com.api.educore.dto.ServicePriceDTO;
 import com.api.educore.model.ClassLevel;
+import com.api.educore.model.School;
 import com.api.educore.model.ServiceCategory;
 import com.api.educore.model.ServicePrice;
+import com.api.educore.model.User;
 import com.api.educore.repository.ServicePriceRepository;
+import com.api.educore.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,9 +20,18 @@ import java.util.stream.Collectors;
 public class ServicePriceService {
 
     private final ServicePriceRepository repository;
+    private final UserRepository userRepository;
+
+    private School getCurrentSchool() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElse(null);
+        return user != null ? user.getSchool() : null;
+    }
 
     public List<ServicePriceDTO> findAll() {
-        return repository.findAll().stream().map(this::toDTO).collect(Collectors.toList());
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return repository.findBySchoolId(school.getId()).stream().map(this::toDTO).collect(Collectors.toList());
     }
 
     public List<ServicePriceDTO> findActive() {
@@ -65,6 +78,7 @@ public class ServicePriceService {
         entity.setFineDay3(dto.getFineDay3());
         entity.setFinePercent3(dto.getFinePercent3());
         entity.setActive(dto.isActive());
+        entity.setSchool(getCurrentSchool());
         return toDTO(repository.save(entity));
     }
 

@@ -7,7 +7,9 @@ import com.api.educore.model.*;
 import com.api.educore.repository.BusRepository;
 import com.api.educore.repository.DriverRepository;
 import com.api.educore.repository.TransportRouteRepository;
+import com.api.educore.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,14 +22,24 @@ public class TransportService {
     private final TransportRouteRepository routeRepository;
     private final BusRepository busRepository;
     private final DriverRepository driverRepository;
+    private final UserRepository userRepository;
+
+    private School getCurrentSchool() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElse(null);
+        return user != null ? user.getSchool() : null;
+    }
 
     // Routes
     public List<TransportRouteDTO> findAllRoutes() {
-        return routeRepository.findAll().stream().map(this::toRouteDTO).collect(Collectors.toList());
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return routeRepository.findBySchoolId(school.getId()).stream().map(this::toRouteDTO).collect(Collectors.toList());
     }
 
     public TransportRouteDTO createRoute(TransportRouteDTO dto) {
         TransportRoute route = new TransportRoute();
+        route.setSchool(getCurrentSchool());
         mapRoute(dto, route);
         return toRouteDTO(routeRepository.save(route));
     }
@@ -45,11 +57,14 @@ public class TransportService {
 
     // Buses
     public List<BusDTO> findAllBuses() {
-        return busRepository.findAll().stream().map(this::toBusDTO).collect(Collectors.toList());
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return busRepository.findBySchoolId(school.getId()).stream().map(this::toBusDTO).collect(Collectors.toList());
     }
 
     public BusDTO createBus(BusDTO dto) {
         Bus bus = new Bus();
+        bus.setSchool(getCurrentSchool());
         mapBus(dto, bus);
         return toBusDTO(busRepository.save(bus));
     }
@@ -67,11 +82,14 @@ public class TransportService {
 
     // Drivers
     public List<DriverDTO> findAllDrivers() {
-        return driverRepository.findAll().stream().map(this::toDriverDTO).collect(Collectors.toList());
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return driverRepository.findBySchoolId(school.getId()).stream().map(this::toDriverDTO).collect(Collectors.toList());
     }
 
     public DriverDTO createDriver(DriverDTO dto) {
         Driver driver = new Driver();
+        driver.setSchool(getCurrentSchool());
         mapDriver(dto, driver);
         return toDriverDTO(driverRepository.save(driver));
     }

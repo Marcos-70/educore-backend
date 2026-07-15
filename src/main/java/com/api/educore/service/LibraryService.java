@@ -6,6 +6,7 @@ import com.api.educore.dto.LibraryReaderDTO;
 import com.api.educore.model.*;
 import com.api.educore.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -19,14 +20,24 @@ public class LibraryService {
     private final LibraryBookRepository bookRepository;
     private final LibraryLoanRepository loanRepository;
     private final LibraryReaderRepository readerRepository;
+    private final UserRepository userRepository;
+
+    private School getCurrentSchool() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElse(null);
+        return user != null ? user.getSchool() : null;
+    }
 
     // Books
     public List<LibraryBookDTO> findAllBooks() {
-        return bookRepository.findAll().stream().map(this::toBookDTO).collect(Collectors.toList());
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return bookRepository.findBySchoolId(school.getId()).stream().map(this::toBookDTO).collect(Collectors.toList());
     }
 
     public LibraryBookDTO createBook(LibraryBookDTO dto) {
         LibraryBook book = new LibraryBook();
+        book.setSchool(getCurrentSchool());
         mapBook(dto, book);
         return toBookDTO(bookRepository.save(book));
     }
@@ -44,7 +55,9 @@ public class LibraryService {
 
     // Loans
     public List<LibraryLoanDTO> findAllLoans() {
-        return loanRepository.findAll().stream().map(this::toLoanDTO).collect(Collectors.toList());
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return loanRepository.findBySchoolId(school.getId()).stream().map(this::toLoanDTO).collect(Collectors.toList());
     }
 
     public List<LibraryLoanDTO> findActiveLoans() {
@@ -65,6 +78,7 @@ public class LibraryService {
         LibraryLoan loan = new LibraryLoan();
         loan.setBook(book);
         loan.setReader(reader);
+        loan.setSchool(getCurrentSchool());
         loan.setLoanDate(LocalDate.now());
         loan.setDueDate(LocalDate.now().plusDays(14));
         loan.setStatus(LoanStatus.ACTIVE);
@@ -91,11 +105,14 @@ public class LibraryService {
 
     // Readers
     public List<LibraryReaderDTO> findAllReaders() {
-        return readerRepository.findAll().stream().map(this::toReaderDTO).collect(Collectors.toList());
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return readerRepository.findBySchoolId(school.getId()).stream().map(this::toReaderDTO).collect(Collectors.toList());
     }
 
     public LibraryReaderDTO createReader(LibraryReaderDTO dto) {
         LibraryReader reader = new LibraryReader();
+        reader.setSchool(getCurrentSchool());
         mapReader(dto, reader);
         return toReaderDTO(readerRepository.save(reader));
     }

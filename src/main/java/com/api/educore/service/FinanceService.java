@@ -6,7 +6,9 @@ import com.api.educore.repository.PaymentRepository;
 import com.api.educore.repository.SchoolSettingsRepository;
 import com.api.educore.repository.ServicePriceRepository;
 import com.api.educore.repository.StudentRepository;
+import com.api.educore.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -26,6 +28,13 @@ public class FinanceService {
     private final StudentRepository studentRepository;
     private final ServicePriceRepository servicePriceRepository;
     private final SchoolSettingsRepository schoolSettingsRepository;
+    private final UserRepository userRepository;
+
+    private School getCurrentSchool() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElse(null);
+        return user != null ? user.getSchool() : null;
+    }
 
     private static final Map<String, ServiceCategory> PAYMENT_TYPE_TO_CATEGORY = new HashMap<>();
     static {
@@ -44,7 +53,10 @@ public class FinanceService {
     }
 
     public List<PaymentDTO> findAll() {
-        return paymentRepository.findByCancelledFalse().stream()
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return paymentRepository.findBySchoolId(school.getId()).stream()
+                .filter(p -> !p.isCancelled())
                 .map(this::toDTO).collect(Collectors.toList());
     }
 
@@ -80,6 +92,7 @@ public class FinanceService {
 
         Payment payment = new Payment();
         payment.setStudent(student);
+        payment.setSchool(getCurrentSchool());
 
         // Sequential receipt number: FAT-YYYYMMDD-NNN
         payment.setReceiptNumber(generateSequentialReceiptNumber("FAT-"));
@@ -282,8 +295,8 @@ public class FinanceService {
         String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String fullPrefix = prefix + dateStr + "-";
 
-        // Find the last receipt number for today with this prefix
-        List<Payment> todayPayments = paymentRepository.findAll().stream()
+        School school = getCurrentSchool();
+        List<Payment> todayPayments = (school != null ? paymentRepository.findBySchoolId(school.getId()) : paymentRepository.findAll()).stream()
                 .filter(p -> p.getReceiptNumber() != null && p.getReceiptNumber().startsWith(fullPrefix))
                 .sorted((a, b) -> b.getReceiptNumber().compareTo(a.getReceiptNumber()))
                 .collect(java.util.stream.Collectors.toList());
@@ -384,13 +397,24 @@ public class FinanceService {
         dto.setCancelledAt(p.getCancelledAt());
 
         // Populate school data
-        schoolSettingsRepository.findAll().stream().findFirst().ifPresent(settings -> {
-            dto.setSchoolName(settings.getSchoolName());
-            dto.setSchoolAddress(settings.getAddress());
-            dto.setSchoolNif(settings.getNif());
-            dto.setSchoolPhone(settings.getPhone());
-            dto.setSchoolEmail(settings.getEmail());
-        });
+        School school = getCurrentSchool();
+        if (school != null) {
+            schoolSettingsRepository.findBySchoolId(school.getId()).ifPresent(settings -> {
+                dto.setSchoolName(settings.getSchoolName());
+                dto.setSchoolAddress(settings.getAddress());
+                dto.setSchoolNif(settings.getNif());
+                dto.setSchoolPhone(settings.getPhone());
+                dto.setSchoolEmail(settings.getEmail());
+            });
+        } else {
+            schoolSettingsRepository.findAll().stream().findFirst().ifPresent(settings -> {
+                dto.setSchoolName(settings.getSchoolName());
+                dto.setSchoolAddress(settings.getAddress());
+                dto.setSchoolNif(settings.getNif());
+                dto.setSchoolPhone(settings.getPhone());
+                dto.setSchoolEmail(settings.getEmail());
+            });
+        }
 
         return dto;
     }

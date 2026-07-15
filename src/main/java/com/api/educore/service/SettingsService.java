@@ -1,9 +1,13 @@
 package com.api.educore.service;
 
 import com.api.educore.dto.SchoolSettingsDTO;
+import com.api.educore.model.School;
 import com.api.educore.model.SchoolSettings;
+import com.api.educore.model.User;
 import com.api.educore.repository.SchoolSettingsRepository;
+import com.api.educore.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -11,16 +15,27 @@ import org.springframework.stereotype.Service;
 public class SettingsService {
 
     private final SchoolSettingsRepository settingsRepository;
+    private final UserRepository userRepository;
+
+    private School getCurrentSchool() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElse(null);
+        return user != null ? user.getSchool() : null;
+    }
 
     public SchoolSettingsDTO get() {
-        SchoolSettings settings = settingsRepository.findAll().stream().findFirst()
-                .orElse(new SchoolSettings());
+        School school = getCurrentSchool();
+        SchoolSettings settings = school != null
+                ? settingsRepository.findBySchoolId(school.getId()).orElse(new SchoolSettings())
+                : settingsRepository.findAll().stream().findFirst().orElse(new SchoolSettings());
         return toDTO(settings);
     }
 
     public SchoolSettingsDTO save(SchoolSettingsDTO dto) {
-        SchoolSettings settings = settingsRepository.findAll().stream().findFirst()
-                .orElse(new SchoolSettings());
+        School school = getCurrentSchool();
+        SchoolSettings settings = school != null
+                ? settingsRepository.findBySchoolId(school.getId()).orElse(new SchoolSettings())
+                : settingsRepository.findAll().stream().findFirst().orElse(new SchoolSettings());
         settings.setSchoolName(dto.getSchoolName());
         settings.setNif(dto.getNif());
         settings.setAddress(dto.getAddress());
@@ -40,6 +55,7 @@ public class SettingsService {
         settings.setCurrencyFormat(dto.getCurrencyFormat());
         settings.setTheme(dto.getTheme());
         settings.setCompactMode(dto.isCompactMode());
+        if (school != null) settings.setSchool(school);
         return toDTO(settingsRepository.save(settings));
     }
 
