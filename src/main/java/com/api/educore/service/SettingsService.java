@@ -4,6 +4,7 @@ import com.api.educore.dto.SchoolSettingsDTO;
 import com.api.educore.model.School;
 import com.api.educore.model.SchoolSettings;
 import com.api.educore.model.User;
+import com.api.educore.repository.SchoolRepository;
 import com.api.educore.repository.SchoolSettingsRepository;
 import com.api.educore.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 public class SettingsService {
 
     private final SchoolSettingsRepository settingsRepository;
+    private final SchoolRepository schoolRepository;
     private final UserRepository userRepository;
 
     private School getCurrentSchool() {
@@ -28,7 +30,19 @@ public class SettingsService {
         SchoolSettings settings = school != null
                 ? settingsRepository.findBySchoolId(school.getId()).orElse(new SchoolSettings())
                 : settingsRepository.findAll().stream().findFirst().orElse(new SchoolSettings());
-        return toDTO(settings);
+
+        SchoolSettingsDTO dto = toDTO(settings);
+
+        if (school != null) {
+            if (dto.getSchoolName() == null || dto.getSchoolName().isEmpty()) dto.setSchoolName(school.getName());
+            if (dto.getNif() == null || dto.getNif().isEmpty()) dto.setNif(school.getNif());
+            if (dto.getAddress() == null || dto.getAddress().isEmpty()) dto.setAddress(school.getAddress());
+            if (dto.getEmail() == null || dto.getEmail().isEmpty()) dto.setEmail(school.getEmail());
+            if (dto.getPhone() == null || dto.getPhone().isEmpty()) dto.setPhone(school.getPhone());
+            if (dto.getLogoPath() == null || dto.getLogoPath().isEmpty()) dto.setLogoPath(school.getLogo());
+        }
+
+        return dto;
     }
 
     public SchoolSettingsDTO save(SchoolSettingsDTO dto) {
@@ -56,7 +70,19 @@ public class SettingsService {
         settings.setTheme(dto.getTheme());
         settings.setCompactMode(dto.isCompactMode());
         if (school != null) settings.setSchool(school);
-        return toDTO(settingsRepository.save(settings));
+        settingsRepository.save(settings);
+
+        if (school != null) {
+            if (dto.getSchoolName() != null && !dto.getSchoolName().isEmpty()) school.setName(dto.getSchoolName());
+            if (dto.getNif() != null) school.setNif(dto.getNif());
+            if (dto.getAddress() != null) school.setAddress(dto.getAddress());
+            if (dto.getEmail() != null) school.setEmail(dto.getEmail());
+            if (dto.getPhone() != null) school.setPhone(dto.getPhone());
+            if (dto.getLogoPath() != null) school.setLogo(dto.getLogoPath());
+            schoolRepository.save(school);
+        }
+
+        return toDTO(settings);
     }
 
     private SchoolSettingsDTO toDTO(SchoolSettings s) {
