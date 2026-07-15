@@ -2,7 +2,9 @@ package com.api.educore.service;
 
 import com.api.educore.dto.AuthRequest;
 import com.api.educore.dto.AuthResponse;
+import com.api.educore.dto.RegisterRequest;
 import com.api.educore.model.User;
+import com.api.educore.model.UserRole;
 import com.api.educore.repository.UserRepository;
 import com.api.educore.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -40,11 +42,17 @@ public class AuthService {
                 .build();
     }
 
-    public User register(User user, String rawPassword) {
-        if (userRepository.existsByEmail(user.getEmail())) {
+    public User register(RegisterRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email já cadastrado");
         }
-        user.setPassword(passwordEncoder.encode(rawPassword));
+        User user = User.builder()
+                .name(request.getName())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .role(UserRole.SECRETARIO)
+                .active(true)
+                .build();
         return userRepository.save(user);
     }
 }

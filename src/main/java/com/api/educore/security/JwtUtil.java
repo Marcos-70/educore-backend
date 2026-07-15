@@ -6,10 +6,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Component
 public class JwtUtil {
+
+    private static final String ISSUER = "educore-api";
 
     @Value("${jwt.secret}")
     private String secret;
@@ -18,13 +21,14 @@ public class JwtUtil {
     private long expiration;
 
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateToken(String email, String role) {
         return Jwts.builder()
                 .subject(email)
                 .claim("role", role)
+                .issuer(ISSUER)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSigningKey())
@@ -41,8 +45,8 @@ public class JwtUtil {
 
     public boolean isTokenValid(String token) {
         try {
-            extractClaims(token);
-            return true;
+            Claims claims = extractClaims(token);
+            return ISSUER.equals(claims.getIssuer());
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }

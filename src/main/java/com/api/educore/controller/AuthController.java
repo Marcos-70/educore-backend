@@ -2,6 +2,7 @@ package com.api.educore.controller;
 
 import com.api.educore.dto.AuthRequest;
 import com.api.educore.dto.AuthResponse;
+import com.api.educore.dto.RegisterRequest;
 import com.api.educore.model.User;
 import com.api.educore.model.UserRole;
 import com.api.educore.service.AuthService;
@@ -23,7 +24,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<User> register(@RequestBody User user) {
-        return ResponseEntity.ok(authService.register(user, user.getPassword()));
+    public ResponseEntity<User> register(@Valid @RequestBody RegisterRequest request) {
+        return ResponseEntity.ok(authService.register(request));
     }
 }
