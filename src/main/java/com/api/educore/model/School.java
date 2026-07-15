@@ -1,5 +1,6 @@
 package com.api.educore.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -30,6 +31,7 @@ public class School {
     private String city;
     private String country;
     private String website;
+    @JsonIgnoreProperties({"school"})
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "director_id")
     private User director;
