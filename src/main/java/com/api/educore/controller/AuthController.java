@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -42,5 +43,10 @@ public class AuthController {
     public ResponseEntity<Map<String, String>> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
         authService.updateProfile(request);
         return ResponseEntity.ok(Map.of("message", "Perfil atualizado com sucesso"));
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<List<User>> getUsers() {
+        return ResponseEntity.ok(authService.getUsers());
     }
 }
