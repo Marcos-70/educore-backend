@@ -28,16 +28,13 @@ public class DataInitializer implements CommandLineRunner {
             user.setSchool(school);
             userRepository.save(user);
         }
-        if (!usersWithoutSchool.isEmpty()) {
-            log.info("Associados {} usuarios a escola {}", usersWithoutSchool.size(), school.getName());
-        }
 
         if (userRepository.count() == 0) {
-            createDefaultUser("Admin Mawa", "admin.mawa@gmail.com", "admin123", UserRole.ADMIN, school);
-            createDefaultUser("Secretario Mawa", "sec.mawa@gmail.com", "secretario123", UserRole.SECRETARIO, school);
-            createDefaultUser("Professor Mawa", "prof.mawa@gmail.com", "professor123", UserRole.PROFESSOR, school);
-            createDefaultUser("Director Mawa", "dir.mawa@gmail.com", "director123", UserRole.DIRECTOR, school);
-            log.info("Utilizadores padrao criados");
+            createUser("Admin Mawa", "admin.mawa@gmail.com", "Admin123!", UserRole.ADMIN, school);
+            createUser("Secretario Mawa", "sec.mawa@gmail.com", "Secretario123!", UserRole.SECRETARIO, school);
+            createUser("Professor Mawa", "prof.mawa@gmail.com", "Professor123!", UserRole.PROFESSOR, school);
+            createUser("Director Mawa", "dir.mawa@gmail.com", "Director123!", UserRole.DIRECTOR, school);
+            log.info("Dados iniciais criados");
         }
     }
 
@@ -48,12 +45,10 @@ public class DataInitializer implements CommandLineRunner {
                             .name("ACADEMIA MAWA")
                             .nif("541789236")
                             .address("Luanda, Angola")
-                            .email("info@academiamawa.edu.ao")
-                            .phone("+244 923 456 789")
                             .city("Luanda")
                             .country("Angola")
-                            .directorName("Director Mawa")
-                            .directorEmail("dir.mawa@gmail.com")
+                            .email("info@academiamawa.edu.ao")
+                            .phone("+244 923 456 789")
                             .motto("Educacao de excelencia")
                             .active(true)
                             .build();
@@ -61,7 +56,7 @@ public class DataInitializer implements CommandLineRunner {
                 });
     }
 
-    private void createDefaultUser(String name, String email, String password, UserRole role, School school) {
+    private void createUser(String name, String email, String password, UserRole role, School school) {
         User user = User.builder()
                 .name(name)
                 .email(email)

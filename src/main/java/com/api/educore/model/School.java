@@ -29,8 +29,10 @@ public class School {
     private String city;
     private String country;
     private String website;
-    private String directorName;
-    private String directorEmail;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "director_id")
+    private User director;
+
     private String motto;
 
     @Column(nullable = false)
