@@ -35,6 +35,7 @@ public class SettingsService {
 
         if (school != null) {
             if (dto.getSchoolName() == null || dto.getSchoolName().isEmpty()) dto.setSchoolName(school.getName());
+            if (dto.getSchoolMotto() == null || dto.getSchoolMotto().isEmpty()) dto.setSchoolMotto(school.getMotto());
             if (dto.getNif() == null || dto.getNif().isEmpty()) dto.setNif(school.getNif());
             if (dto.getAddress() == null || dto.getAddress().isEmpty()) dto.setAddress(school.getAddress());
             if (dto.getEmail() == null || dto.getEmail().isEmpty()) dto.setEmail(school.getEmail());
@@ -51,6 +52,7 @@ public class SettingsService {
                 ? settingsRepository.findBySchoolId(school.getId()).orElse(new SchoolSettings())
                 : settingsRepository.findAll().stream().findFirst().orElse(new SchoolSettings());
         settings.setSchoolName(dto.getSchoolName());
+        settings.setSchoolMotto(dto.getSchoolMotto());
         settings.setNif(dto.getNif());
         settings.setAddress(dto.getAddress());
         settings.setEmail(dto.getEmail());
@@ -74,6 +76,7 @@ public class SettingsService {
 
         if (school != null) {
             if (dto.getSchoolName() != null && !dto.getSchoolName().isEmpty()) school.setName(dto.getSchoolName());
+            if (dto.getSchoolMotto() != null) school.setMotto(dto.getSchoolMotto());
             if (dto.getNif() != null) school.setNif(dto.getNif());
             if (dto.getAddress() != null) school.setAddress(dto.getAddress());
             if (dto.getEmail() != null) school.setEmail(dto.getEmail());
@@ -89,6 +92,7 @@ public class SettingsService {
         SchoolSettingsDTO dto = new SchoolSettingsDTO();
         dto.setId(s.getId());
         dto.setSchoolName(s.getSchoolName());
+        dto.setSchoolMotto(s.getSchoolMotto());
         dto.setNif(s.getNif());
         dto.setAddress(s.getAddress());
         dto.setEmail(s.getEmail());

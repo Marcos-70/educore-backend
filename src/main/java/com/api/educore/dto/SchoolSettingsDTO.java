@@ -6,6 +6,7 @@ import lombok.Data;
 public class SchoolSettingsDTO {
     private Long id;
     private String schoolName;
+    private String schoolMotto;
     private String nif;
     private String address;
     private String email;
