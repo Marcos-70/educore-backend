@@ -353,7 +353,7 @@ public class BackupController {
         sql.append("  academic_year_id BIGINT\n");
         sql.append(");\n\n");
 
-        List<Trimester> trimesters = trimesterRepository.findByAcademicYear_SchoolId(schoolId);
+        List<Trimester> trimesters = trimesterRepository.findAll().stream().filter(t -> t.getSchool() != null && t.getSchool().getId().equals(schoolId)).toList();
         for (Trimester t : trimesters) {
             sql.append(String.format("INSERT INTO trimesters (id, name, start_date, end_date, academic_year_id) VALUES (%d, '%s', '%s', '%s', %s) ON CONFLICT (id) DO NOTHING;\n",
                     t.getId(), esc(t.getName()),
@@ -808,7 +808,7 @@ public class BackupController {
         for (Driver d : drivers) {
             sql.append(String.format("INSERT INTO drivers (id, name, phone, license_number, bus_id, status, school_id) VALUES (%d, '%s', '%s', '%s', %s, '%s', %d) ON CONFLICT (id) DO NOTHING;\n",
                     d.getId(), esc(d.getName()), esc(d.getPhone()), esc(d.getLicenseNumber()),
-                    d.getBus() != null ? d.getBus().getId().toString() : "NULL",
+                    d.getAssignedBus() != null ? d.getAssignedBus().getId().toString() : "NULL",
                     d.getStatus() != null ? d.getStatus().name() : "ACTIVE",
                     schoolId));
         }
@@ -836,7 +836,7 @@ public class BackupController {
                     r.getId(), esc(r.getName()), esc(r.getDescription()),
                     r.getBus() != null ? r.getBus().getId().toString() : "NULL",
                     r.getDriver() != null ? r.getDriver().getId().toString() : "NULL",
-                    esc(r.getRouteText()),
+                    esc(r.getDescription()),
                     r.getStatus() != null ? r.getStatus().name() : "ACTIVE",
                     schoolId));
         }
@@ -854,12 +854,15 @@ public class BackupController {
         sql.append("  enabled BOOLEAN DEFAULT TRUE\n");
         sql.append(");\n\n");
 
-        List<UserPermission> permissions = userPermissionRepository.findByUser_SchoolId(schoolId);
+        List<UserPermission> permissions = new java.util.ArrayList<>();
+        for (User u : users) {
+            permissions.addAll(userPermissionRepository.findByUserId(u.getId()));
+        }
         for (UserPermission up : permissions) {
             sql.append(String.format("INSERT INTO user_permissions (id, user_id, module, enabled) VALUES (%d, %d, '%s', %s) ON CONFLICT (id) DO NOTHING;\n",
                     up.getId(),
                     up.getUser() != null ? up.getUser().getId() : 0,
-                    esc(up.getModule()),
+                    esc(up.getModuleId()),
                     up.isEnabled()));
         }
         sql.append("\n");
