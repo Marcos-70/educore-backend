@@ -83,16 +83,16 @@ public class BackupController {
         sql.append("\n");
 
         sql.append("-- Configuracoes da Escola\n");
-        List<SchoolSettings> settingsList = schoolSettingsRepository.findBySchoolId(schoolId);
-        for (SchoolSettings s : settingsList) {
+        SchoolSettings settings = schoolSettingsRepository.findBySchoolId(schoolId).orElse(null);
+        if (settings != null) {
             sql.append(String.format("INSERT INTO school_settings (id, school_name, school_motto, nif, address, email, phone, currency, timezone, logo_path, active_academic_year, auto_billing, auto_backup, email_notifications, sms_notifications, push_notifications, language, date_format, currency_format, theme, compact_mode, school_id) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', %s, %s, %s, %s, %s, '%s', '%s', '%s', '%s', %s, %d) ON CONFLICT (id) DO NOTHING;\n",
-                    s.getId(), esc(s.getSchoolName()), esc(s.getSchoolMotto()), esc(s.getNif()),
-                    esc(s.getAddress()), esc(s.getEmail()), esc(s.getPhone()),
-                    esc(s.getCurrency()), esc(s.getTimezone()), esc(s.getLogoPath()),
-                    esc(s.getActiveAcademicYear()), s.isAutoBilling(), s.isAutoBackup(),
-                    s.isEmailNotifications(), s.isSmsNotifications(), s.isPushNotifications(),
-                    esc(s.getLanguage()), esc(s.getDateFormat()), esc(s.getCurrencyFormat()),
-                    esc(s.getTheme()), s.isCompactMode(), schoolId));
+                    settings.getId(), esc(settings.getSchoolName()), esc(settings.getSchoolMotto()), esc(settings.getNif()),
+                    esc(settings.getAddress()), esc(settings.getEmail()), esc(settings.getPhone()),
+                    esc(settings.getCurrency()), esc(settings.getTimezone()), esc(settings.getLogoPath()),
+                    esc(settings.getActiveAcademicYear()), settings.isAutoBilling(), settings.isAutoBackup(),
+                    settings.isEmailNotifications(), settings.isSmsNotifications(), settings.isPushNotifications(),
+                    esc(settings.getLanguage()), esc(settings.getDateFormat()), esc(settings.getCurrencyFormat()),
+                    esc(settings.getTheme()), settings.isCompactMode(), schoolId));
         }
         sql.append("\n");
 
