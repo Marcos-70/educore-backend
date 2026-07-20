@@ -34,7 +34,11 @@ public class DocumentService {
     }
 
     public List<DocumentDTO> findByStatus(DocumentStatus status) {
-        return documentRepository.findByStatus(status).stream().map(this::toDTO).collect(Collectors.toList());
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return documentRepository.findBySchoolId(school.getId()).stream()
+                .filter(d -> d.getStatus() == status)
+                .map(this::toDTO).collect(Collectors.toList());
     }
 
     public DocumentDTO create(DocumentDTO dto) {

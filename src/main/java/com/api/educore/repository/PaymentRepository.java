@@ -18,20 +18,27 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByPaymentType(PaymentType type);
     List<Payment> findByPaymentDateBetween(LocalDate start, LocalDate end);
     List<Payment> findByCancelledFalse();
+    List<Payment> findBySchoolId(Long schoolId);
 
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.status = :status AND p.cancelled = false")
     double sumAmountByStatus(@Param("status") PaymentStatus status);
 
+    @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.status = :status AND p.cancelled = false AND p.school.id = :schoolId")
+    double sumAmountByStatusAndSchoolId(@Param("status") PaymentStatus status, @Param("schoolId") Long schoolId);
+
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.paymentDate BETWEEN :start AND :end AND p.cancelled = false")
     double sumAmountByPaymentDateBetweenAndCancelledFalse(@Param("start") LocalDate start, @Param("end") LocalDate end);
+
+    @Query("SELECT COUNT(p) FROM Payment p WHERE p.status = :status AND p.cancelled = false AND p.school.id = :schoolId")
+    long countByStatusAndSchoolId(@Param("status") PaymentStatus status, @Param("schoolId") Long schoolId);
 
     @Query("SELECT p.student.id, p.student.firstName, p.student.lastName, e.schoolClass.name, COUNT(p), SUM(p.amount) " +
             "FROM Payment p " +
             "LEFT JOIN Enrollment e ON e.student = p.student " +
-            "WHERE p.status IN ('UNPAID', 'OVERDUE') AND p.cancelled = false " +
+            "WHERE p.status IN ('UNPAID', 'OVERDUE') AND p.cancelled = false AND p.school.id = :schoolId " +
             "GROUP BY p.student.id, p.student.firstName, p.student.lastName, e.schoolClass.name " +
             "ORDER BY SUM(p.amount) DESC")
-    List<Object[]> findTopDebtors();
+    List<Object[]> findTopDebtorsBySchoolId(@Param("schoolId") Long schoolId);
 
     boolean existsByStudentIdAndMonthAndAcademicYearIdAndCancelledFalse(Long studentId, String month, Long academicYearId);
 
@@ -41,5 +48,4 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     boolean existsByStudentIdAndMonthInField(@Param("studentId") Long studentId, @Param("month") String month);
 
     List<Payment> findByStudentIdAndCancelledFalse(Long studentId);
-    List<Payment> findBySchoolId(Long schoolId);
 }

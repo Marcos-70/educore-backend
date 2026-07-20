@@ -54,26 +54,31 @@ public class AdminController {
 
         Long schoolId = currentUser.getSchool().getId();
         List<String> modules = request.getModules();
+        if (modules == null || modules.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Nenhum modulo especificado"));
+        }
+
         int totalDeleted = 0;
 
-        if (modules.contains("students")) totalDeleted += deleteStudents(schoolId);
-        if (modules.contains("teachers")) totalDeleted += deleteTeachers(schoolId);
-        if (modules.contains("classes")) totalDeleted += deleteClasses(schoolId);
-        if (modules.contains("enrollments")) totalDeleted += deleteEnrollments(schoolId);
-        if (modules.contains("grades")) totalDeleted += deleteGrades(schoolId);
+        // Delete in dependency order: leaf entities first, then parents
         if (modules.contains("attendance")) totalDeleted += deleteAttendance(schoolId);
+        if (modules.contains("grades")) totalDeleted += deleteGrades(schoolId);
         if (modules.contains("payments")) totalDeleted += deletePayments(schoolId);
-        if (modules.contains("subjects")) totalDeleted += deleteSubjects(schoolId);
+        if (modules.contains("enrollments")) totalDeleted += deleteEnrollments(schoolId);
         if (modules.contains("schedules")) totalDeleted += deleteSchedules(schoolId);
-        if (modules.contains("documents")) totalDeleted += deleteDocuments(schoolId);
         if (modules.contains("library")) totalDeleted += deleteLibrary(schoolId);
         if (modules.contains("transport")) totalDeleted += deleteTransport(schoolId);
+        if (modules.contains("documents")) totalDeleted += deleteDocuments(schoolId);
         if (modules.contains("calendar")) totalDeleted += deleteCalendar(schoolId);
-        if (modules.contains("academic")) totalDeleted += deleteAcademic(schoolId);
         if (modules.contains("assessments")) totalDeleted += deleteAssessments(schoolId);
+        if (modules.contains("subjects")) totalDeleted += deleteSubjects(schoolId);
+        if (modules.contains("classes")) totalDeleted += deleteClasses(schoolId);
+        if (modules.contains("students")) totalDeleted += deleteStudents(schoolId);
+        if (modules.contains("teachers")) totalDeleted += deleteTeachers(schoolId);
+        if (modules.contains("academic")) totalDeleted += deleteAcademic(schoolId);
         if (modules.contains("prices")) totalDeleted += deletePrices(schoolId);
-        if (modules.contains("users")) totalDeleted += deleteUsers(schoolId, currentUser.getId());
         if (modules.contains("permissions")) totalDeleted += deletePermissions(schoolId);
+        if (modules.contains("users")) totalDeleted += deleteUsers(schoolId, currentUser.getId());
 
         return ResponseEntity.ok(Map.of(
             "message", totalDeleted + " registros apagados com sucesso",

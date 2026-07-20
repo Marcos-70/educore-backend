@@ -4,10 +4,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -24,7 +26,33 @@ public class GlobalExceptionHandler {
                 .map(e -> e.getField() + ": " + e.getDefaultMessage())
                 .collect(Collectors.joining(", "));
         return ResponseEntity.badRequest().body(Map.of(
-                "error", errors,
+                "error", "Erro de validação: " + errors,
+                "timestamp", LocalDateTime.now().toString()
+        ));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException ex) {
+        log.warn("ResponseStatusException: {} - {}", ex.getStatusCode(), ex.getReason());
+        return ResponseEntity.status(ex.getStatusCode()).body(Map.of(
+                "error", ex.getReason() != null ? ex.getReason() : "Recurso não encontrado",
+                "timestamp", LocalDateTime.now().toString()
+        ));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex) {
+        log.warn("AccessDenied: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                "error", "Acesso negado. Você não tem permissão para acessar este recurso.",
+                "timestamp", LocalDateTime.now().toString()
+        ));
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                "error", "Credenciais inválidas",
                 "timestamp", LocalDateTime.now().toString()
         ));
     }
@@ -34,14 +62,6 @@ public class GlobalExceptionHandler {
         log.error("RuntimeException: {}", ex.getMessage(), ex);
         return ResponseEntity.badRequest().body(Map.of(
                 "error", ex.getMessage() != null ? ex.getMessage() : "Ocorreu um erro",
-                "timestamp", LocalDateTime.now().toString()
-        ));
-    }
-
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                "error", "Credenciais inválidas",
                 "timestamp", LocalDateTime.now().toString()
         ));
     }

@@ -61,8 +61,11 @@ public class FinanceService {
     }
 
     public List<PaymentDTO> findByStatus(PaymentStatus status) {
-        return paymentRepository.findByStatus(status)
-                .stream().map(this::toDTO).collect(Collectors.toList());
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return paymentRepository.findBySchoolId(school.getId()).stream()
+                .filter(p -> p.getStatus() == status && !p.isCancelled())
+                .map(this::toDTO).collect(Collectors.toList());
     }
 
     public PaymentDTO findById(Long id) {
@@ -75,7 +78,6 @@ public class FinanceService {
         Student student = studentRepository.findById(dto.getStudentId())
                 .orElseThrow(() -> new RuntimeException("Aluno nao encontrado"));
 
-        // Check for duplicate months
         if (dto.getMonth() != null && !dto.getMonth().isBlank()) {
             String[] months = dto.getMonth().split(",");
             for (String m : months) {
@@ -94,10 +96,8 @@ public class FinanceService {
         payment.setStudent(student);
         payment.setSchool(getCurrentSchool());
 
-        // Sequential receipt number: FAT-YYYYMMDD-NNN
         payment.setReceiptNumber(generateSequentialReceiptNumber("FAT-"));
 
-        // Map payment type string to enum
         PaymentType paymentType = mapPaymentType(dto.getPaymentType());
         payment.setPaymentType(paymentType);
 
@@ -115,7 +115,6 @@ public class FinanceService {
         payment.setAcademicYearId(dto.getAcademicYearId());
         payment.setStatus(PaymentStatus.PAID);
 
-        // Payment method details
         payment.setCashReceived(dto.getCashReceived());
         payment.setChange(dto.getChange());
         payment.setCashRegisterName(dto.getCashRegisterName());
@@ -137,7 +136,6 @@ public class FinanceService {
         Payment payment = paymentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Pagamento nao encontrado"));
 
-        // Generate unique credit note number: NC-YYYYMMDD-NNN
         String creditNoteNumber = generateSequentialReceiptNumber("NC-");
 
         payment.setCancelled(true);
@@ -151,21 +149,27 @@ public class FinanceService {
     }
 
     public double getTotalCollected() {
-        Double total = paymentRepository.sumAmountByStatus(PaymentStatus.PAID);
-        return total != null ? total : 0.0;
+        School school = getCurrentSchool();
+        if (school == null) return 0.0;
+        return paymentRepository.sumAmountByStatusAndSchoolId(PaymentStatus.PAID, school.getId());
     }
 
     public double getTotalPending() {
-        Double total = paymentRepository.sumAmountByStatus(PaymentStatus.UNPAID);
-        return total != null ? total : 0.0;
+        School school = getCurrentSchool();
+        if (school == null) return 0.0;
+        return paymentRepository.sumAmountByStatusAndSchoolId(PaymentStatus.UNPAID, school.getId());
     }
 
     public long countPaid() {
-        return paymentRepository.findByStatus(PaymentStatus.PAID).size();
+        School school = getCurrentSchool();
+        if (school == null) return 0;
+        return paymentRepository.countByStatusAndSchoolId(PaymentStatus.PAID, school.getId());
     }
 
     public long countUnpaid() {
-        return paymentRepository.findByStatus(PaymentStatus.UNPAID).size();
+        School school = getCurrentSchool();
+        if (school == null) return 0;
+        return paymentRepository.countByStatusAndSchoolId(PaymentStatus.UNPAID, school.getId());
     }
 
     private double lookupServicePrice(String paymentType, String classLevel) {
@@ -174,14 +178,12 @@ public class FinanceService {
             return 0.0;
         }
 
-        // Try class-specific pricing first
         if (classLevel != null && !classLevel.isBlank()) {
             try {
                 ClassLevel level = ClassLevel.valueOf(classLevel.toUpperCase());
                 return servicePriceRepository.findFirstByCategoryAndClassLevelAndActiveTrueOrderByPriceDesc(category, level)
                         .map(ServicePrice::getPrice)
                         .orElseGet(() -> {
-                            // Fall back to generic price (no class level)
                             return servicePriceRepository.findFirstByCategoryAndClassLevelIsNullAndActiveTrueOrderByPriceDesc(category)
                                     .map(ServicePrice::getPrice)
                                     .orElse(0.0);
@@ -189,7 +191,6 @@ public class FinanceService {
             } catch (IllegalArgumentException ignored) {}
         }
 
-        // Generic price (no class level specified)
         return servicePriceRepository.findFirstByCategoryAndClassLevelIsNullAndActiveTrueOrderByPriceDesc(category)
                 .orElseGet(() -> servicePriceRepository.findFirstByCategoryAndActiveTrueOrderByPriceDesc(category)
                         .orElse(null))
@@ -200,7 +201,6 @@ public class FinanceService {
         ServiceCategory category = PAYMENT_TYPE_TO_CATEGORY.get(paymentType);
         if (category == null) return 0.0;
 
-        // Find the service price with fine rules
         ServicePrice servicePrice = null;
         if (classLevel != null && !classLevel.isBlank()) {
             try {
@@ -220,48 +220,37 @@ public class FinanceService {
         if (servicePrice == null || servicePrice.getDueDay() == null) return 0.0;
         if (servicePrice.getFinePercent1() == null && servicePrice.getFinePercent2() == null && servicePrice.getFinePercent3() == null) return 0.0;
 
-        // Get the due day and fine percentages
-        int dueDay = servicePrice.getDueDay(); // e.g., 15
+        int dueDay = servicePrice.getDueDay();
         int fineDay2 = servicePrice.getFineDay2() != null ? servicePrice.getFineDay2() : 25;
         int fineDay3 = servicePrice.getFineDay3() != null ? servicePrice.getFineDay3() : 31;
         double finePct1 = servicePrice.getFinePercent1() != null ? servicePrice.getFinePercent1() : 0;
         double finePct2 = servicePrice.getFinePercent2() != null ? servicePrice.getFinePercent2() : 0;
         double finePct3 = servicePrice.getFinePercent3() != null ? servicePrice.getFinePercent3() : 0;
 
-        // Parse month to get the month number
         LocalDate monthDate = parseMonthToDate(month, 1);
         if (monthDate == null) return 0.0;
         int monthNumber = monthDate.getMonthValue();
         int monthYear = monthDate.getYear();
 
-        // Today's date
         LocalDate today = LocalDate.now();
         int todayDay = today.getDayOfMonth();
         int todayMonth = today.getMonthValue();
         int todayYear = today.getYear();
 
-        // Calculate fine based on when payment is made relative to the month
         double finePercent = 0.0;
 
-        // Case 1: Paying for the current month
         if (todayMonth == monthNumber && todayYear == monthYear) {
             if (todayDay <= dueDay) {
-                // 1st to dueDay: no fine
                 return 0.0;
             } else if (todayDay <= fineDay2) {
-                // dueDay+1 to fineDay2: finePercent1
                 finePercent = finePct1;
             } else if (todayDay <= fineDay3) {
-                // fineDay2+1 to fineDay3: finePercent2
                 finePercent = finePct2;
             } else {
-                // After fineDay3: finePercent3
                 finePercent = finePct3;
             }
         }
-        // Case 2: Paying for a previous month (not current month)
         else if (todayYear > monthYear || (todayYear == monthYear && todayMonth > monthNumber)) {
-            // If paying for a past month, apply the highest fine (finePercent3)
             finePercent = finePct3;
         }
 
@@ -296,10 +285,10 @@ public class FinanceService {
         String fullPrefix = prefix + dateStr + "-";
 
         School school = getCurrentSchool();
-        List<Payment> todayPayments = (school != null ? paymentRepository.findBySchoolId(school.getId()) : paymentRepository.findAll()).stream()
+        List<Payment> todayPayments = (school != null ? paymentRepository.findBySchoolId(school.getId()) : List.of()).stream()
                 .filter(p -> p.getReceiptNumber() != null && p.getReceiptNumber().startsWith(fullPrefix))
                 .sorted((a, b) -> b.getReceiptNumber().compareTo(a.getReceiptNumber()))
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
 
         int nextNumber = 1;
         if (!todayPayments.isEmpty()) {
@@ -396,18 +385,9 @@ public class FinanceService {
         dto.setCancellationObservation(p.getCancellationObservation());
         dto.setCancelledAt(p.getCancelledAt());
 
-        // Populate school data
         School school = getCurrentSchool();
         if (school != null) {
             schoolSettingsRepository.findBySchoolId(school.getId()).ifPresent(settings -> {
-                dto.setSchoolName(settings.getSchoolName());
-                dto.setSchoolAddress(settings.getAddress());
-                dto.setSchoolNif(settings.getNif());
-                dto.setSchoolPhone(settings.getPhone());
-                dto.setSchoolEmail(settings.getEmail());
-            });
-        } else {
-            schoolSettingsRepository.findAll().stream().findFirst().ifPresent(settings -> {
                 dto.setSchoolName(settings.getSchoolName());
                 dto.setSchoolAddress(settings.getAddress());
                 dto.setSchoolNif(settings.getNif());

@@ -35,15 +35,18 @@ public class EnrollmentService {
     }
 
     public List<EnrollmentDTO> findByStatus(EnrollmentStatus status) {
-        return enrollmentRepository.findByStatus(status)
-                .stream().map(this::toDTO).collect(Collectors.toList());
+        School school = getCurrentSchool();
+        if (school == null) return List.of();
+        return enrollmentRepository.findBySchoolId(school.getId()).stream()
+                .filter(e -> e.getStatus() == status)
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
 
     public EnrollmentDTO create(EnrollmentDTO dto) {
         Student student = studentRepository.findById(dto.getStudentId())
                 .orElseThrow(() -> new RuntimeException("Aluno não encontrado"));
 
-        // Prevent duplicate enrollment in the same academic year
         String academicYear = dto.getAcademicYear();
         List<Enrollment> existingEnrollments = enrollmentRepository.findByStudentIdAndAcademicYear(dto.getStudentId(), academicYear);
         boolean alreadyEnrolled = existingEnrollments.stream()
@@ -52,13 +55,14 @@ public class EnrollmentService {
             throw new RuntimeException("Este aluno já está matriculado/confirmado no ano letivo " + academicYear + ". Não é possível criar uma matrícula duplicada.");
         }
 
+        School school = getCurrentSchool();
         Enrollment enrollment = new Enrollment();
         enrollment.setStudent(student);
-        enrollment.setSchool(getCurrentSchool());
+        enrollment.setSchool(school);
         if (dto.getClassId() != null) {
             SchoolClass sc = classRepository.findById(dto.getClassId())
                     .orElseThrow(() -> new RuntimeException("Turma não encontrada"));
-            long currentEnrolled = enrollmentRepository.findBySchoolId(getCurrentSchool().getId()).stream()
+            long currentEnrolled = enrollmentRepository.findBySchoolId(school.getId()).stream()
                     .filter(e -> e.getSchoolClass() != null && e.getSchoolClass().getId().equals(sc.getId()))
                     .filter(e -> e.getStatus() != EnrollmentStatus.REJECTED && e.getStatus() != EnrollmentStatus.CANCELLED)
                     .count();
@@ -69,7 +73,6 @@ public class EnrollmentService {
         }
         enrollment.setAcademicYear(academicYear);
 
-        // Determine status based on enrollmentType
         String enrollmentType = dto.getEnrollmentType() != null ? dto.getEnrollmentType() : "MATRICULA";
         enrollment.setEnrollmentType(enrollmentType);
         enrollment.setStatus(EnrollmentStatus.APPROVED);
