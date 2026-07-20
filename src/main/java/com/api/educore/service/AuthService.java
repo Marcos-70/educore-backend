@@ -55,14 +55,15 @@ public class AuthService {
             throw new RuntimeException("Email já cadastrado");
         }
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User currentUser = userRepository.findByEmail(email).orElse(null);
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilizador não autenticado"));
 
         User user = User.builder()
                 .name(request.getName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(request.getRole() != null ? UserRole.valueOf(request.getRole()) : UserRole.SECRETARIO)
-                .school(currentUser != null ? currentUser.getSchool() : null)
+                .school(currentUser.getSchool())
                 .active(true)
                 .build();
         return userRepository.save(user);
