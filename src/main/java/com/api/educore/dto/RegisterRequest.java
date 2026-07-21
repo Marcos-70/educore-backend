@@ -9,7 +9,13 @@ import lombok.Data;
 @Data
 public class RegisterRequest {
     @NotBlank(message = "Nome e obrigatorio")
-    private String name;
+    private String firstName;
+
+    @NotBlank(message = "Apelido e obrigatorio")
+    private String lastName;
+
+    @NotBlank(message = "Username e obrigatorio")
+    private String username;
 
     @NotBlank(message = "Email e obrigatorio")
     @Email(message = "Formato de email invalido")
@@ -21,4 +27,7 @@ public class RegisterRequest {
     private String password;
 
     private String role;
+    private String position;
+    private String phone;
+    private String gender;
 }

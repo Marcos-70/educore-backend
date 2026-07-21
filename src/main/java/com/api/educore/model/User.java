@@ -21,7 +21,13 @@ public class User {
     private Long id;
 
     @Column(nullable = false)
-    private String name;
+    private String firstName;
+
+    @Column(nullable = false)
+    private String lastName;
+
+    @Column(nullable = false, unique = true)
+    private String username;
 
     @Column(nullable = false, unique = true)
     private String email;
@@ -34,16 +40,19 @@ public class User {
     @Column(nullable = false)
     private UserRole role;
 
+    private String position;
+
     private String phone;
 
     @Column(columnDefinition = "TEXT")
     private String avatar;
+
     private String address;
-    private String city;
-    private String country;
-    private String biNumber;
-    private String dateOfBirth;
+
     private String gender;
+
+    @Enumerated(EnumType.STRING)
+    private Gender sexo;
 
     @Column(nullable = false)
     private boolean active = true;
@@ -57,4 +66,9 @@ public class User {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @Transient
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
 }

@@ -27,10 +27,10 @@ public class AuthService {
 
     public AuthResponse login(AuthRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Email ou senha inválidos"));
+                .orElseThrow(() -> new RuntimeException("Email ou senha invalidos"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Credenciais inválidas");
+            throw new RuntimeException("Credenciais invalidas");
         }
 
         if (!user.isActive()) {
@@ -43,7 +43,8 @@ public class AuthService {
         return AuthResponse.builder()
                 .token(token)
                 .email(user.getEmail())
-                .name(user.getName())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
                 .role(user.getRole().name())
                 .userId(user.getId())
                 .schoolId(user.getSchool() != null ? user.getSchool().getId() : null)
@@ -53,17 +54,25 @@ public class AuthService {
 
     public User register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email já cadastrado");
+            throw new RuntimeException("Email ja cadastrado");
+        }
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            throw new RuntimeException("Username ja utilizado");
         }
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utilizador não autenticado"));
+                .orElseThrow(() -> new RuntimeException("Utilizador nao autenticado"));
 
         User user = User.builder()
-                .name(request.getName())
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .username(request.getUsername())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(request.getRole() != null ? UserRole.valueOf(request.getRole()) : UserRole.SECRETARIO)
+                .position(request.getPosition())
+                .phone(request.getPhone())
+                .gender(request.getGender())
                 .school(currentUser.getSchool())
                 .active(true)
                 .build();
@@ -73,7 +82,7 @@ public class AuthService {
     public void changePassword(ChangePasswordRequest request) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuario nao encontrado"));
+                .orElseThrow(() -> new RuntimeException("Utilizador nao encontrado"));
 
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
             throw new RuntimeException("Senha atual incorreta");
@@ -86,9 +95,9 @@ public class AuthService {
     public void updateProfile(UpdateProfileRequest request) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuario nao encontrado"));
+                .orElseThrow(() -> new RuntimeException("Utilizador nao encontrado"));
 
-        user.setName(request.getName());
+        user.setFirstName(request.getName());
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
         userRepository.save(user);
@@ -97,7 +106,7 @@ public class AuthService {
     public List<UserDTO> getUsers() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utilizador não encontrado"));
+                .orElseThrow(() -> new RuntimeException("Utilizador nao encontrado"));
         List<User> users;
         if (currentUser.getSchool() != null) {
             users = userRepository.findBySchoolId(currentUser.getSchool().getId());
@@ -110,16 +119,17 @@ public class AuthService {
     private UserDTO toDTO(User u) {
         return UserDTO.builder()
                 .id(u.getId())
-                .name(u.getName())
+                .firstName(u.getFirstName())
+                .lastName(u.getLastName())
+                .username(u.getUsername())
                 .email(u.getEmail())
                 .role(u.getRole() != null ? u.getRole().name() : null)
+                .position(u.getPosition())
                 .phone(u.getPhone())
+                .avatar(u.getAvatar())
                 .address(u.getAddress())
-                .city(u.getCity())
-                .country(u.getCountry())
-                .biNumber(u.getBiNumber())
-                .dateOfBirth(u.getDateOfBirth())
                 .gender(u.getGender())
+                .sexo(u.getSexo() != null ? u.getSexo().name() : null)
                 .active(u.isActive())
                 .schoolId(u.getSchool() != null ? u.getSchool().getId() : null)
                 .schoolName(u.getSchool() != null ? u.getSchool().getName() : null)

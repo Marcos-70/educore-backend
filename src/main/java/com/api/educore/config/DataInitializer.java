@@ -31,28 +31,27 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         if (userRepository.count() == 0) {
-            User admin = createUser("Super Admin", "superadmin@mawa.com", "SuperAdmin123!", UserRole.SUPER_ADMIN, school);
-            User adminDir = createUser("Admin Mawa", "admin.mawa@gmail.com", "Admin123!", UserRole.ADMIN, school);
-            createUser("Director Geral", "director@mawa.com", "Director123!", UserRole.DIRECTOR, school);
-            createUser("Director Pedagogico", "dir.pedagogico@mawa.com", "DirPedagogico123!", UserRole.DIRECTOR_PEDAGOGICO, school);
-            createUser("Secretario Mawa", "sec.mawa@gmail.com", "Secretario123!", UserRole.SECRETARIO, school);
-            createUser("Secretaria Pedagogica", "sec.pedagogica@mawa.com", "SecPedagogica123!", UserRole.SECRETARIA_PEDAGOGICA, school);
-            createUser("Professor Mawa", "prof.mawa@gmail.com", "Professor123!", UserRole.PROFESSOR, school);
-            createUser("Tesoureiro", "tesoureiro@mawa.com", "Tesoureiro123!", UserRole.TESOUREIRO, school);
-            createUser("Bibliotecario", "bibliotecario@mawa.com", "Bibliotecario123!", UserRole.BIBLIOTECARIO, school);
+            User superAdmin = createUser("Manuel", "António", "superadmin@mawa.com", "SuperAdmin123!", UserRole.SUPER_ADMIN, "Super Administrador", "923 100 001", "MASCULINO", school);
+            User admin = createUser("Carlos", "Machado", "admin.mawa@gmail.com", "Admin123!", UserRole.ADMIN, "Administrador Geral", "923 100 002", "MASCULINO", school);
+            User director = createUser("Fernanda", "Lopes", "director@mawa.com", "Director123!", UserRole.DIRECTOR, "Director Geral", "923 100 003", "FEMININO", school);
+            User dirPed = createUser("Paulo", "Mendes", "dir.pedagogico@mawa.com", "DirPed123!", UserRole.DIRECTOR_PEDAGOGICO, "Director Pedagogico", "923 100 004", "MASCULINO", school);
+            User sec = createUser("Ana", "Silva", "sec.mawa@gmail.com", "Secretario123!", UserRole.SECRETARIO, "Secretario Administrativo", "923 100 005", "FEMININO", school);
+            User secPed = createUser("Maria", "Costa", "sec.pedagogica@mawa.com", "SecPed123!", UserRole.SECRETARIA_PEDAGOGICA, "Secretaria Pedagogica", "923 100 006", "FEMININO", school);
+            User prof = createUser("Joao", "Santos", "prof.mawa@gmail.com", "Professor123!", UserRole.PROFESSOR, "Professor de Matematica", "923 100 007", "MASCULINO", school);
+            User tesoureiro = createUser("Ricardo", "Almeida", "tesoureiro@mawa.com", "Tesoureiro123!", UserRole.TESOUREIRO, "Tesoureiro", "923 100 008", "MASCULINO", school);
+            User biblio = createUser("Teresa", "Oliveira", "bibliotecario@mawa.com", "Bibliotec123!", UserRole.BIBLIOTECARIO, "Bibliotecaria", "923 100 009", "FEMININO", school);
 
-            // Default permissions
-            createDefaultPermissions(admin, new String[]{"schools", "dashboard"});
-            createDefaultPermissions(adminDir, new String[]{"dashboard","students","enrollments","academic","teachers","classes","schedules","grades","attendance","finance","transport","library","documents","reports","settings"});
-            createDefaultPermissions(findUser("director@mawa.com"), new String[]{"dashboard","students","enrollments","academic","teachers","classes","schedules","grades","attendance","reports"});
-            createDefaultPermissions(findUser("dir.pedagogico@mawa.com"), new String[]{"dashboard","academic","teachers","classes","schedules","grades","attendance","reports"});
-            createDefaultPermissions(findUser("sec.mawa@gmail.com"), new String[]{"dashboard","students","enrollments","teachers","classes","schedules","attendance","finance","transport","library","documents"});
-            createDefaultPermissions(findUser("sec.pedagogica@mawa.com"), new String[]{"dashboard","students","enrollments","academic","teachers","classes","schedules","attendance","documents"});
-            createDefaultPermissions(findUser("prof.mawa@gmail.com"), new String[]{"dashboard","classes","schedules","grades","attendance","library"});
-            createDefaultPermissions(findUser("tesoureiro@mawa.com"), new String[]{"dashboard","finance"});
-            createDefaultPermissions(findUser("bibliotecario@mawa.com"), new String[]{"dashboard","library"});
+            createDefaultPermissions(superAdmin, new String[]{"schools", "dashboard"});
+            createDefaultPermissions(admin, new String[]{"dashboard","students","enrollments","academic","teachers","classes","schedules","grades","attendance","finance","transport","library","documents","reports","settings"});
+            createDefaultPermissions(director, new String[]{"dashboard","students","enrollments","academic","teachers","classes","schedules","grades","attendance","reports"});
+            createDefaultPermissions(dirPed, new String[]{"dashboard","academic","teachers","classes","schedules","grades","attendance","reports"});
+            createDefaultPermissions(sec, new String[]{"dashboard","students","enrollments","teachers","classes","schedules","attendance","finance","transport","library","documents"});
+            createDefaultPermissions(secPed, new String[]{"dashboard","students","enrollments","academic","teachers","classes","schedules","attendance","documents"});
+            createDefaultPermissions(prof, new String[]{"dashboard","classes","schedules","grades","attendance","library"});
+            createDefaultPermissions(tesoureiro, new String[]{"dashboard","finance"});
+            createDefaultPermissions(biblio, new String[]{"dashboard","library"});
 
-            log.info("Dados iniciais criados com sucesso");
+            log.info("Dados iniciais criados: 1 escola, 9 utilizadores com permissoes");
         }
     }
 
@@ -62,11 +61,12 @@ public class DataInitializer implements CommandLineRunner {
                     School s = School.builder()
                             .name("ACADEMIA MAWA")
                             .nif("541789236")
-                            .address("Luanda, Angola")
+                            .address("Rua da Missao, 45")
                             .city("Luanda")
                             .country("Angola")
                             .email("info@academiamawa.edu.ao")
                             .phone("+244 923 456 789")
+                            .website("www.academiamawa.edu.ao")
                             .motto("Educacao de excelencia")
                             .active(true)
                             .build();
@@ -74,20 +74,22 @@ public class DataInitializer implements CommandLineRunner {
                 });
     }
 
-    private User createUser(String name, String email, String password, UserRole role, School school) {
+    private User createUser(String firstName, String lastName, String email, String password,
+                            UserRole role, String position, String phone, String gender, School school) {
         User user = User.builder()
-                .name(name)
+                .firstName(firstName)
+                .lastName(lastName)
+                .username(email.split("@")[0])
                 .email(email)
                 .password(passwordEncoder.encode(password))
                 .role(role)
+                .position(position)
+                .phone(phone)
+                .gender(gender)
                 .school(school)
                 .active(true)
                 .build();
         return userRepository.save(user);
-    }
-
-    private User findUser(String email) {
-        return userRepository.findByEmail(email).orElse(null);
     }
 
     private void createDefaultPermissions(User user, String[] modules) {
