@@ -5,6 +5,7 @@ import com.api.educore.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -19,9 +20,21 @@ public class DataInitializer implements CommandLineRunner {
     private final SchoolRepository schoolRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserPermissionRepository userPermissionRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) {
+        // Force drop and recreate users table if it has old schema
+        try {
+            jdbcTemplate.execute("DROP TABLE IF EXISTS user_permissions CASCADE");
+            jdbcTemplate.execute("DROP TABLE IF EXISTS users CASCADE");
+            jdbcTemplate.execute("CREATE TABLE users (id BIGSERIAL PRIMARY KEY, first_name VARCHAR(255) NOT NULL, last_name VARCHAR(255) NOT NULL, username VARCHAR(255) NOT NULL UNIQUE, email VARCHAR(255) NOT NULL UNIQUE, password VARCHAR(255) NOT NULL, role VARCHAR(50) NOT NULL, position VARCHAR(255), phone VARCHAR(255), avatar TEXT, address VARCHAR(255), gender VARCHAR(50), sexo VARCHAR(50), active BOOLEAN DEFAULT TRUE, school_id BIGINT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+            jdbcTemplate.execute("CREATE TABLE user_permissions (id BIGSERIAL PRIMARY KEY, user_id BIGINT NOT NULL, permission VARCHAR(100) NOT NULL, enabled BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id, permission))");
+            log.info("Tabelas users e user_permissions recriadas com sucesso");
+        } catch (Exception e) {
+            log.warn("Aviso ao recriar tabelas: {}", e.getMessage());
+        }
+
         School school = getOrCreateSchool();
 
         List<User> usersWithoutSchool = userRepository.findBySchoolId(null);
@@ -31,7 +44,7 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         if (userRepository.count() == 0) {
-            User superAdmin = createUser("Manuel", "António", "superadmin@mawa.com", "SuperAdmin123!", UserRole.SUPER_ADMIN, "Super Administrador", "923 100 001", "MASCULINO", school);
+            User superAdmin = createUser("Manuel", "Antonio", "superadmin@mawa.com", "SuperAdmin123!", UserRole.SUPER_ADMIN, "Super Administrador", "923 100 001", "MASCULINO", school);
             User admin = createUser("Carlos", "Machado", "admin.mawa@gmail.com", "Admin123!", UserRole.ADMIN, "Administrador Geral", "923 100 002", "MASCULINO", school);
             User director = createUser("Fernanda", "Lopes", "director@mawa.com", "Director123!", UserRole.DIRECTOR, "Director Geral", "923 100 003", "FEMININO", school);
             User dirPed = createUser("Paulo", "Mendes", "dir.pedagogico@mawa.com", "DirPed123!", UserRole.DIRECTOR_PEDAGOGICO, "Director Pedagogico", "923 100 004", "MASCULINO", school);
@@ -43,13 +56,13 @@ public class DataInitializer implements CommandLineRunner {
 
             createDefaultPermissions(superAdmin, new String[]{"VIEW_ESCOLA", "CREATE_ESCOLA", "EDIT_ESCOLA", "VIEW_UTILIZADOR", "CREATE_UTILIZADOR", "EDIT_UTILIZADOR", "DELETE_UTILIZADOR", "VIEW_PERMISSAO", "EDIT_PERMISSAO"});
             createDefaultPermissions(admin, new String[]{"VIEW_ALUNO", "CREATE_ALUNO", "EDIT_ALUNO", "DELETE_ALUNO", "VIEW_PROFESSOR", "CREATE_PROFESSOR", "EDIT_PROFESSOR", "DELETE_PROFESSOR", "VIEW_TURMA", "CREATE_TURMA", "EDIT_TURMA", "DELETE_TURMA", "VIEW_NOTA", "EDIT_NOTA", "VIEW_ASSIDUIDADE", "EDIT_ASSIDUIDADE", "VIEW_MATRICULA", "CREATE_MATRICULA", "EDIT_MATRICULA", "DELETE_MATRICULA", "VIEW_FINANCEIRO", "CREATE_FINANCEIRO", "EDIT_FINANCEIRO", "DELETE_FINANCEIRO", "VIEW_BIBLIOTECA", "CREATE_BIBLIOTECA", "EDIT_BIBLIOTECA", "VIEW_DOCUMENTO", "CREATE_DOCUMENTO", "EDIT_DOCUMENTO", "VIEW_TRANSPORTE", "CREATE_TRANSPORTE", "EDIT_TRANSPORTE", "VIEW_ACADEMICO", "CREATE_ACADEMICO", "EDIT_ACADEMICO", "VIEW_RELATORIO", "VIEW_CONFIGURACAO", "EDIT_CONFIGURACAO", "VIEW_UTILIZADOR", "CREATE_UTILIZADOR", "EDIT_UTILIZADOR"});
-            createDefaultPermissions(director, new String[]{"VIEW_ALUNO", "CREATE_ALUNO", "EDIT_ALUNO", "VIEW_PROFESSOR", "CREATE_PROFESSOR", "EDIT_PROFESSOR", "VIEW_TURMA", "CREATE_TURMA", "EDIT_TURMA", "VIEW_NOTA", "EDIT_NOTA", "VIEW_ASSIDUIDADE", "EDIT_ASSIDUIDADE", "VIEW_MATRICULA", "CREATE_MATRICULA", "EDIT_MATRICULA", "VIEW_ACADEMICO", "CREATE_ACADEMICO", "EDIT_ACADEMICO", "VIEW_RELATORIO"});
-            createDefaultPermissions(dirPed, new String[]{"VIEW_ALUNO", "CREATE_ALUNO", "EDIT_ALUNO", "VIEW_PROFESSOR", "CREATE_PROFESSOR", "VIEW_TURMA", "CREATE_TURMA", "EDIT_TURMA", "VIEW_NOTA", "EDIT_NOTA", "VIEW_ASSIDUIDADE", "EDIT_ASSIDUIDADE", "VIEW_ACADEMICO", "CREATE_ACADEMICO", "EDIT_ACADEMICO", "VIEW_RELATORIO"});
-            createDefaultPermissions(sec, new String[]{"VIEW_ALUNO", "CREATE_ALUNO", "EDIT_ALUNO", "VIEW_PROFESSOR", "CREATE_PROFESSOR", "VIEW_TURMA", "VIEW_MATRICULA", "CREATE_MATRICULA", "EDIT_MATRICULA", "VIEW_ASSIDUIDADE", "EDIT_ASSIDUIDADE", "VIEW_FINANCEIRO", "CREATE_FINANCEIRO", "EDIT_FINANCEIRO", "VIEW_TRANSPORTE", "CREATE_TRANSPORTE", "VIEW_BIBLIOTECA", "VIEW_DOCUMENTO", "CREATE_DOCUMENTO"});
-            createDefaultPermissions(secPed, new String[]{"VIEW_ALUNO", "CREATE_ALUNO", "EDIT_ALUNO", "VIEW_PROFESSOR", "CREATE_PROFESSOR", "VIEW_TURMA", "VIEW_MATRICULA", "CREATE_MATRICULA", "VIEW_NOTA", "VIEW_ASSIDUIDADE", "EDIT_ASSIDUIDADE", "VIEW_ACADEMICO", "CREATE_ACADEMICO", "VIEW_DOCUMENTO", "CREATE_DOCUMENTO"});
-            createDefaultPermissions(prof, new String[]{"VIEW_ALUNO", "VIEW_TURMA", "VIEW_NOTA", "EDIT_NOTA", "VIEW_ASSIDUIDADE", "EDIT_ASSIDUIDADE", "VIEW_BIBLIOTECA"});
+            createDefaultPermissions(director, new String[]{"VIEW_ALUNO", "CREATE_ALUNO", "EDIT_ALUNO", "VIEW_PROFESSOR", "CREATE_PROFESSOR", "EDIT_PROFESSOR", "VIEW_TURMA", "CREATE_TURMA", "EDIT_TURMA", "VIEW_NOTA", "EDIT_NOTA", "VIEW_ASSIDUIDADE", "EDIT_ASSIDUIDADE", "VIEW_MATRICULA", "CREATE_MATRICULA", "EDIT_MATRICULA", "VIEW_ACADEMICO", "CREATE_ACADEMICO", "EDIT_ACADEMICO", "VIEW_RELATORIO", "VIEW_CONFIGURACAO"});
+            createDefaultPermissions(dirPed, new String[]{"VIEW_ACADEMICO", "CREATE_ACADEMICO", "EDIT_ACADEMICO", "VIEW_PROFESSOR", "CREATE_PROFESSOR", "VIEW_TURMA", "CREATE_TURMA", "EDIT_TURMA", "VIEW_NOTA", "EDIT_NOTA", "VIEW_ASSIDUIDADE", "EDIT_ASSIDUIDADE", "VIEW_RELATORIO"});
+            createDefaultPermissions(sec, new String[]{"VIEW_ALUNO", "CREATE_ALUNO", "EDIT_ALUNO", "VIEW_PROFESSOR", "CREATE_PROFESSOR", "VIEW_TURMA", "CREATE_TURMA", "VIEW_ASSIDUIDADE", "EDIT_ASSIDUIDADE", "VIEW_FINANCEIRO", "CREATE_FINANCEIRO", "EDIT_FINANCEIRO", "VIEW_TRANSPORTE", "CREATE_TRANSPORTE", "VIEW_BIBLIOTECA", "VIEW_DOCUMENTO", "CREATE_DOCUMENTO"});
+            createDefaultPermissions(secPed, new String[]{"VIEW_ALUNO", "CREATE_ALUNO", "EDIT_ALUNO", "VIEW_MATRICULA", "CREATE_MATRICULA", "VIEW_ACADEMICO", "VIEW_PROFESSOR", "VIEW_TURMA", "CREATE_TURMA", "VIEW_ASSIDUIDADE", "EDIT_ASSIDUIDADE", "VIEW_DOCUMENTO", "CREATE_DOCUMENTO"});
+            createDefaultPermissions(prof, new String[]{"VIEW_TURMA", "EDIT_TURMA", "VIEW_NOTA", "EDIT_NOTA", "VIEW_ASSIDUIDADE", "EDIT_ASSIDUIDADE", "VIEW_BIBLIOTECA"});
             createDefaultPermissions(tesoureiro, new String[]{"VIEW_FINANCEIRO", "CREATE_FINANCEIRO", "EDIT_FINANCEIRO", "DELETE_FINANCEIRO"});
-            createDefaultPermissions(biblio, new String[]{"VIEW_BIBLIOTECA", "CREATE_BIBLIOTECA", "EDIT_BIBLIOTECA"});
+            createDefaultPermissions(biblio, new String[]{"VIEW_BIBLIOTECA", "CREATE_BIBLIOTECA", "EDIT_BIBLIOTECA", "DELETE_BIBLIOTECA"});
 
             log.info("Dados iniciais criados: 1 escola, 9 utilizadores com permissoes");
         }
