@@ -120,11 +120,11 @@ public class BackupController {
 
         List<User> users = userRepository.findBySchoolId(schoolId);
         for (User u : users) {
-            sql.append(String.format("INSERT INTO users (id, name, email, password, role, phone, avatar, address, city, country, bi_number, date_of_birth, gender, active, school_id) VALUES (%d, '%s', '%s', '%s', '%s', '%s', NULL, '%s', '%s', '%s', '%s', '%s', '%s', %s, %d) ON CONFLICT (id) DO NOTHING;\n",
-                    u.getId(), esc(u.getName()), esc(u.getEmail()), esc(u.getPassword()),
+            sql.append(String.format("INSERT INTO users (id, first_name, last_name, username, email, password, role, position, phone, avatar, address, gender, active, school_id) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', NULL, '%s', '%s', %s, %d) ON CONFLICT (id) DO NOTHING;\n",
+                    u.getId(), esc(u.getFirstName()), esc(u.getLastName()), esc(u.getUsername()),
+                    esc(u.getEmail()), esc(u.getPassword()),
                     u.getRole() != null ? u.getRole().name() : "SECRETARIO",
-                    esc(u.getPhone()), esc(u.getAddress()), esc(u.getCity()), esc(u.getCountry()),
-                    esc(u.getBiNumber()), esc(u.getDateOfBirth()), esc(u.getGender()),
+                    esc(u.getPosition()), esc(u.getPhone()), esc(u.getAddress()), esc(u.getGender()),
                     u.isActive(), schoolId));
         }
         sql.append("\n");
