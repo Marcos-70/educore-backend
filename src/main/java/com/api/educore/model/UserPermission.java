@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "user_permissions", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"user_id", "module_id"})
+    @UniqueConstraint(columnNames = {"user_id", "permission"})
 })
 @Data
 @NoArgsConstructor
@@ -23,8 +23,9 @@ public class UserPermission {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "module_id", nullable = false)
-    private String moduleId;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "permission", nullable = false)
+    private Permission permission;
 
     @Column(nullable = false)
     private boolean enabled = true;

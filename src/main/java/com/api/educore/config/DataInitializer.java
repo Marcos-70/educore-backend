@@ -41,15 +41,15 @@ public class DataInitializer implements CommandLineRunner {
             User tesoureiro = createUser("Ricardo", "Almeida", "tesoureiro@mawa.com", "Tesoureiro123!", UserRole.TESOUREIRO, "Tesoureiro", "923 100 008", "MASCULINO", school);
             User biblio = createUser("Teresa", "Oliveira", "bibliotecario@mawa.com", "Bibliotec123!", UserRole.BIBLIOTECARIO, "Bibliotecaria", "923 100 009", "FEMININO", school);
 
-            createDefaultPermissions(superAdmin, new String[]{"schools", "dashboard"});
-            createDefaultPermissions(admin, new String[]{"dashboard","students","enrollments","academic","teachers","classes","schedules","grades","attendance","finance","transport","library","documents","reports","settings"});
-            createDefaultPermissions(director, new String[]{"dashboard","students","enrollments","academic","teachers","classes","schedules","grades","attendance","reports"});
-            createDefaultPermissions(dirPed, new String[]{"dashboard","academic","teachers","classes","schedules","grades","attendance","reports"});
-            createDefaultPermissions(sec, new String[]{"dashboard","students","enrollments","teachers","classes","schedules","attendance","finance","transport","library","documents"});
-            createDefaultPermissions(secPed, new String[]{"dashboard","students","enrollments","academic","teachers","classes","schedules","attendance","documents"});
-            createDefaultPermissions(prof, new String[]{"dashboard","classes","schedules","grades","attendance","library"});
-            createDefaultPermissions(tesoureiro, new String[]{"dashboard","finance"});
-            createDefaultPermissions(biblio, new String[]{"dashboard","library"});
+            createDefaultPermissions(superAdmin, new String[]{"VIEW_ESCOLA", "CREATE_ESCOLA", "EDIT_ESCOLA", "VIEW_UTILIZADOR", "CREATE_UTILIZADOR", "EDIT_UTILIZADOR", "DELETE_UTILIZADOR", "VIEW_PERMISSAO", "EDIT_PERMISSAO"});
+            createDefaultPermissions(admin, new String[]{"VIEW_ALUNO", "CREATE_ALUNO", "EDIT_ALUNO", "DELETE_ALUNO", "VIEW_PROFESSOR", "CREATE_PROFESSOR", "EDIT_PROFESSOR", "DELETE_PROFESSOR", "VIEW_TURMA", "CREATE_TURMA", "EDIT_TURMA", "DELETE_TURMA", "VIEW_NOTA", "EDIT_NOTA", "VIEW_ASSIDUIDADE", "EDIT_ASSIDUIDADE", "VIEW_MATRICULA", "CREATE_MATRICULA", "EDIT_MATRICULA", "DELETE_MATRICULA", "VIEW_FINANCEIRO", "CREATE_FINANCEIRO", "EDIT_FINANCEIRO", "DELETE_FINANCEIRO", "VIEW_BIBLIOTECA", "CREATE_BIBLIOTECA", "EDIT_BIBLIOTECA", "VIEW_DOCUMENTO", "CREATE_DOCUMENTO", "EDIT_DOCUMENTO", "VIEW_TRANSPORTE", "CREATE_TRANSPORTE", "EDIT_TRANSPORTE", "VIEW_ACADEMICO", "CREATE_ACADEMICO", "EDIT_ACADEMICO", "VIEW_RELATORIO", "VIEW_CONFIGURACAO", "EDIT_CONFIGURACAO", "VIEW_UTILIZADOR", "CREATE_UTILIZADOR", "EDIT_UTILIZADOR"});
+            createDefaultPermissions(director, new String[]{"VIEW_ALUNO", "CREATE_ALUNO", "EDIT_ALUNO", "VIEW_PROFESSOR", "CREATE_PROFESSOR", "EDIT_PROFESSOR", "VIEW_TURMA", "CREATE_TURMA", "EDIT_TURMA", "VIEW_NOTA", "EDIT_NOTA", "VIEW_ASSIDUIDADE", "EDIT_ASSIDUIDADE", "VIEW_MATRICULA", "CREATE_MATRICULA", "EDIT_MATRICULA", "VIEW_ACADEMICO", "CREATE_ACADEMICO", "EDIT_ACADEMICO", "VIEW_RELATORIO"});
+            createDefaultPermissions(dirPed, new String[]{"VIEW_ALUNO", "CREATE_ALUNO", "EDIT_ALUNO", "VIEW_PROFESSOR", "CREATE_PROFESSOR", "VIEW_TURMA", "CREATE_TURMA", "EDIT_TURMA", "VIEW_NOTA", "EDIT_NOTA", "VIEW_ASSIDUIDADE", "EDIT_ASSIDUIDADE", "VIEW_ACADEMICO", "CREATE_ACADEMICO", "EDIT_ACADEMICO", "VIEW_RELATORIO"});
+            createDefaultPermissions(sec, new String[]{"VIEW_ALUNO", "CREATE_ALUNO", "EDIT_ALUNO", "VIEW_PROFESSOR", "CREATE_PROFESSOR", "VIEW_TURMA", "VIEW_MATRICULA", "CREATE_MATRICULA", "EDIT_MATRICULA", "VIEW_ASSIDUIDADE", "EDIT_ASSIDUIDADE", "VIEW_FINANCEIRO", "CREATE_FINANCEIRO", "EDIT_FINANCEIRO", "VIEW_TRANSPORTE", "CREATE_TRANSPORTE", "VIEW_BIBLIOTECA", "VIEW_DOCUMENTO", "CREATE_DOCUMENTO"});
+            createDefaultPermissions(secPed, new String[]{"VIEW_ALUNO", "CREATE_ALUNO", "EDIT_ALUNO", "VIEW_PROFESSOR", "CREATE_PROFESSOR", "VIEW_TURMA", "VIEW_MATRICULA", "CREATE_MATRICULA", "VIEW_NOTA", "VIEW_ASSIDUIDADE", "EDIT_ASSIDUIDADE", "VIEW_ACADEMICO", "CREATE_ACADEMICO", "VIEW_DOCUMENTO", "CREATE_DOCUMENTO"});
+            createDefaultPermissions(prof, new String[]{"VIEW_ALUNO", "VIEW_TURMA", "VIEW_NOTA", "EDIT_NOTA", "VIEW_ASSIDUIDADE", "EDIT_ASSIDUIDADE", "VIEW_BIBLIOTECA"});
+            createDefaultPermissions(tesoureiro, new String[]{"VIEW_FINANCEIRO", "CREATE_FINANCEIRO", "EDIT_FINANCEIRO", "DELETE_FINANCEIRO"});
+            createDefaultPermissions(biblio, new String[]{"VIEW_BIBLIOTECA", "CREATE_BIBLIOTECA", "EDIT_BIBLIOTECA"});
 
             log.info("Dados iniciais criados: 1 escola, 9 utilizadores com permissoes");
         }
@@ -92,15 +92,18 @@ public class DataInitializer implements CommandLineRunner {
         return userRepository.save(user);
     }
 
-    private void createDefaultPermissions(User user, String[] modules) {
+    private void createDefaultPermissions(User user, String[] permissionNames) {
         if (user == null) return;
-        for (String moduleId : modules) {
-            UserPermission perm = UserPermission.builder()
-                    .user(user)
-                    .moduleId(moduleId)
-                    .enabled(true)
-                    .build();
-            userPermissionRepository.save(perm);
+        for (String permName : permissionNames) {
+            try {
+                Permission perm = Permission.valueOf(permName);
+                UserPermission up = UserPermission.builder()
+                        .user(user)
+                        .permission(perm)
+                        .enabled(true)
+                        .build();
+                userPermissionRepository.save(up);
+            } catch (IllegalArgumentException ignored) {}
         }
     }
 }

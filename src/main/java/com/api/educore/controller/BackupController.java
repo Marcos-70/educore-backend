@@ -859,10 +859,10 @@ public class BackupController {
             permissions.addAll(userPermissionRepository.findByUserId(u.getId()));
         }
         for (UserPermission up : permissions) {
-            sql.append(String.format("INSERT INTO user_permissions (id, user_id, module, enabled) VALUES (%d, %d, '%s', %s) ON CONFLICT (id) DO NOTHING;\n",
+            sql.append(String.format("INSERT INTO user_permissions (id, user_id, permission, enabled) VALUES (%d, %d, '%s', %s) ON CONFLICT (id) DO NOTHING;\n",
                     up.getId(),
                     up.getUser() != null ? up.getUser().getId() : 0,
-                    esc(up.getModuleId()),
+                    esc(up.getPermission().name()),
                     up.isEnabled()));
         }
         sql.append("\n");

@@ -19,7 +19,7 @@ services:
           name: educore-db
           property: password
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
-        value: create
+        value: update
       - key: APP_CORS_ALLOWED_ORIGINS
         value: https://mawa-erp-gestao-escolar.vercel.app,http://localhost:5173,http://localhost:3000
 
