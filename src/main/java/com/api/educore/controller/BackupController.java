@@ -52,7 +52,7 @@ public class BackupController {
     }
 
     @GetMapping("/sql")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<byte[]> downloadSqlBackup() {
         User user = getCurrentUser();
         if (user == null || user.getSchool() == null) {
@@ -915,7 +915,7 @@ public class BackupController {
     }
 
     @GetMapping("/stats")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<Map<String, Object>> getBackupStats() {
         User user = getCurrentUser();
         if (user == null || user.getSchool() == null) {

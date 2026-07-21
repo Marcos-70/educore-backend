@@ -18,23 +18,41 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final SchoolRepository schoolRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserPermissionRepository userPermissionRepository;
 
     @Override
     public void run(String... args) {
         School school = getOrCreateSchool();
 
         List<User> usersWithoutSchool = userRepository.findBySchoolId(null);
-        for (User user : usersWithoutSchool) {
-            user.setSchool(school);
-            userRepository.save(user);
+        for (User u : usersWithoutSchool) {
+            u.setSchool(school);
+            userRepository.save(u);
         }
 
         if (userRepository.count() == 0) {
-            createUser("Admin Mawa", "admin.mawa@gmail.com", "Admin123!", UserRole.ADMIN, school);
+            User admin = createUser("Super Admin", "superadmin@mawa.com", "SuperAdmin123!", UserRole.SUPER_ADMIN, school);
+            User adminDir = createUser("Admin Mawa", "admin.mawa@gmail.com", "Admin123!", UserRole.ADMIN, school);
+            createUser("Director Geral", "director@mawa.com", "Director123!", UserRole.DIRECTOR, school);
+            createUser("Director Pedagogico", "dir.pedagogico@mawa.com", "DirPedagogico123!", UserRole.DIRECTOR_PEDAGOGICO, school);
             createUser("Secretario Mawa", "sec.mawa@gmail.com", "Secretario123!", UserRole.SECRETARIO, school);
+            createUser("Secretaria Pedagogica", "sec.pedagogica@mawa.com", "SecPedagogica123!", UserRole.SECRETARIA_PEDAGOGICA, school);
             createUser("Professor Mawa", "prof.mawa@gmail.com", "Professor123!", UserRole.PROFESSOR, school);
-            createUser("Director Mawa", "dir.mawa@gmail.com", "Director123!", UserRole.DIRECTOR, school);
-            log.info("Dados iniciais criados");
+            createUser("Tesoureiro", "tesoureiro@mawa.com", "Tesoureiro123!", UserRole.TESOUREIRO, school);
+            createUser("Bibliotecario", "bibliotecario@mawa.com", "Bibliotecario123!", UserRole.BIBLIOTECARIO, school);
+
+            // Default permissions
+            createDefaultPermissions(admin, new String[]{"schools", "dashboard"});
+            createDefaultPermissions(adminDir, new String[]{"dashboard","students","enrollments","academic","teachers","classes","schedules","grades","attendance","finance","transport","library","documents","reports","settings"});
+            createDefaultPermissions(findUser("director@mawa.com"), new String[]{"dashboard","students","enrollments","academic","teachers","classes","schedules","grades","attendance","reports"});
+            createDefaultPermissions(findUser("dir.pedagogico@mawa.com"), new String[]{"dashboard","academic","teachers","classes","schedules","grades","attendance","reports"});
+            createDefaultPermissions(findUser("sec.mawa@gmail.com"), new String[]{"dashboard","students","enrollments","teachers","classes","schedules","attendance","finance","transport","library","documents"});
+            createDefaultPermissions(findUser("sec.pedagogica@mawa.com"), new String[]{"dashboard","students","enrollments","academic","teachers","classes","schedules","attendance","documents"});
+            createDefaultPermissions(findUser("prof.mawa@gmail.com"), new String[]{"dashboard","classes","schedules","grades","attendance","library"});
+            createDefaultPermissions(findUser("tesoureiro@mawa.com"), new String[]{"dashboard","finance"});
+            createDefaultPermissions(findUser("bibliotecario@mawa.com"), new String[]{"dashboard","library"});
+
+            log.info("Dados iniciais criados com sucesso");
         }
     }
 
@@ -56,7 +74,7 @@ public class DataInitializer implements CommandLineRunner {
                 });
     }
 
-    private void createUser(String name, String email, String password, UserRole role, School school) {
+    private User createUser(String name, String email, String password, UserRole role, School school) {
         User user = User.builder()
                 .name(name)
                 .email(email)
@@ -65,6 +83,22 @@ public class DataInitializer implements CommandLineRunner {
                 .school(school)
                 .active(true)
                 .build();
-        userRepository.save(user);
+        return userRepository.save(user);
+    }
+
+    private User findUser(String email) {
+        return userRepository.findByEmail(email).orElse(null);
+    }
+
+    private void createDefaultPermissions(User user, String[] modules) {
+        if (user == null) return;
+        for (String moduleId : modules) {
+            UserPermission perm = UserPermission.builder()
+                    .user(user)
+                    .moduleId(moduleId)
+                    .enabled(true)
+                    .build();
+            userPermissionRepository.save(perm);
+        }
     }
 }

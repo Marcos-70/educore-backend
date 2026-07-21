@@ -31,7 +31,7 @@ public class SchoolController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<School> create(@RequestBody Map<String, Object> body) {
         School school = new School();
         applyFields(school, body);
@@ -39,7 +39,7 @@ public class SchoolController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<School> update(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         School school = schoolRepository.findById(id).orElseThrow(() -> new RuntimeException("Escola nao encontrada"));
         applyFields(school, body);
@@ -47,7 +47,7 @@ public class SchoolController {
     }
 
     @PatchMapping("/{id}/toggle")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<School> toggleActive(@PathVariable Long id) {
         School school = schoolRepository.findById(id).orElseThrow(() -> new RuntimeException("Escola nao encontrada"));
         school.setActive(!school.isActive());
