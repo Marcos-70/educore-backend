@@ -21,7 +21,7 @@ services:
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
         value: update
       - key: APP_CORS_ALLOWED_ORIGINS
-        value: https://mawa-erp-gestao-escolar.vercel.app
+        value: https://mawa-erp-gestao-escolar.vercel.app,http://localhost:5173,http://localhost:3000
 
   - type: postgres
     name: educore-db
