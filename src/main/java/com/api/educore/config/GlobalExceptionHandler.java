@@ -2,6 +2,7 @@ package com.api.educore.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -26,7 +27,7 @@ public class GlobalExceptionHandler {
                 .map(e -> e.getField() + ": " + e.getDefaultMessage())
                 .collect(Collectors.joining(", "));
         return ResponseEntity.badRequest().body(Map.of(
-                "error", "Erro de validação: " + errors,
+                "error", errors,
                 "timestamp", LocalDateTime.now().toString()
         ));
     }
@@ -42,9 +43,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex) {
-        log.warn("AccessDenied: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
-                "error", "Acesso negado. Você não tem permissão para acessar este recurso.",
+                "error", "Sem permissão para acessar este recurso",
                 "timestamp", LocalDateTime.now().toString()
         ));
     }
@@ -52,7 +52,24 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                "error", "Credenciais inválidas",
+                "error", "Email ou senha inválidos",
+                "timestamp", LocalDateTime.now().toString()
+        ));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException ex) {
+        log.error("DataIntegrityViolation: {}", ex.getMessage());
+        return ResponseEntity.badRequest().body(Map.of(
+                "error", "Violação de dados. Verifique os campos e tente novamente.",
+                "timestamp", LocalDateTime.now().toString()
+        ));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest().body(Map.of(
+                "error", ex.getMessage() != null ? ex.getMessage() : "Dados inválidos",
                 "timestamp", LocalDateTime.now().toString()
         ));
     }
@@ -60,8 +77,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
         log.error("RuntimeException: {}", ex.getMessage(), ex);
+        String message = ex.getMessage();
+        if (message == null || message.isEmpty()) {
+            message = "Ocorreu um erro inesperado";
+        }
         return ResponseEntity.badRequest().body(Map.of(
-                "error", ex.getMessage() != null ? ex.getMessage() : "Ocorreu um erro",
+                "error", message,
                 "timestamp", LocalDateTime.now().toString()
         ));
     }
@@ -70,7 +91,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex) {
         log.error("Unhandled exception: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
-                "error", "Erro interno do servidor",
+                "error", "Erro interno do servidor. Tente novamente mais tarde.",
                 "timestamp", LocalDateTime.now().toString()
         ));
     }

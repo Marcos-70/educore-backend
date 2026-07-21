@@ -27,7 +27,7 @@ public class AuthService {
 
     public AuthResponse login(AuthRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Credenciais inválidas"));
+                .orElseThrow(() -> new RuntimeException("Email ou senha inválidos"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Credenciais inválidas");
@@ -102,7 +102,7 @@ public class AuthService {
         if (currentUser.getSchool() != null) {
             users = userRepository.findBySchoolId(currentUser.getSchool().getId());
         } else {
-            users = userRepository.findAll();
+            users = userRepository.findAllWithSchool();
         }
         return users.stream().map(this::toDTO).toList();
     }
