@@ -285,10 +285,11 @@ public class FinanceService {
         String fullPrefix = prefix + dateStr + "-";
 
         School school = getCurrentSchool();
-        List<Payment> todayPayments = (school != null ? paymentRepository.findBySchoolId(school.getId()) : List.of()).stream()
+        List<Payment> payments = school != null ? paymentRepository.findBySchoolId(school.getId()) : new java.util.ArrayList<>();
+        List<Payment> todayPayments = payments.stream()
                 .filter(p -> p.getReceiptNumber() != null && p.getReceiptNumber().startsWith(fullPrefix))
                 .sorted((a, b) -> b.getReceiptNumber().compareTo(a.getReceiptNumber()))
-                .collect(Collectors.toList());
+                .toList();
 
         int nextNumber = 1;
         if (!todayPayments.isEmpty()) {
