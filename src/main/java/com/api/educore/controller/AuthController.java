@@ -5,6 +5,7 @@ import com.api.educore.dto.AuthResponse;
 import com.api.educore.dto.ChangePasswordRequest;
 import com.api.educore.dto.RegisterRequest;
 import com.api.educore.dto.UpdateProfileRequest;
+import com.api.educore.dto.UserDTO;
 import com.api.educore.model.User;
 import com.api.educore.model.UserRole;
 import com.api.educore.service.AuthService;
@@ -48,7 +49,7 @@ public class AuthController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<List<User>> getUsers() {
+    public ResponseEntity<List<UserDTO>> getUsers() {
         return ResponseEntity.ok(authService.getUsers());
     }
 }

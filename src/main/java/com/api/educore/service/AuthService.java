@@ -5,6 +5,7 @@ import com.api.educore.dto.AuthResponse;
 import com.api.educore.dto.ChangePasswordRequest;
 import com.api.educore.dto.RegisterRequest;
 import com.api.educore.dto.UpdateProfileRequest;
+import com.api.educore.dto.UserDTO;
 import com.api.educore.model.User;
 import com.api.educore.model.UserRole;
 import com.api.educore.repository.UserRepository;
@@ -93,13 +94,35 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    public List<User> getUsers() {
+    public List<UserDTO> getUsers() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuario nao encontrado"));
+                .orElseThrow(() -> new RuntimeException("Utilizador não encontrado"));
+        List<User> users;
         if (currentUser.getSchool() != null) {
-            return userRepository.findBySchoolId(currentUser.getSchool().getId());
+            users = userRepository.findBySchoolId(currentUser.getSchool().getId());
+        } else {
+            users = userRepository.findAll();
         }
-        return userRepository.findAll();
+        return users.stream().map(this::toDTO).toList();
+    }
+
+    private UserDTO toDTO(User u) {
+        return UserDTO.builder()
+                .id(u.getId())
+                .name(u.getName())
+                .email(u.getEmail())
+                .role(u.getRole() != null ? u.getRole().name() : null)
+                .phone(u.getPhone())
+                .address(u.getAddress())
+                .city(u.getCity())
+                .country(u.getCountry())
+                .biNumber(u.getBiNumber())
+                .dateOfBirth(u.getDateOfBirth())
+                .gender(u.getGender())
+                .active(u.isActive())
+                .schoolId(u.getSchool() != null ? u.getSchool().getId() : null)
+                .schoolName(u.getSchool() != null ? u.getSchool().getName() : null)
+                .build();
     }
 }
