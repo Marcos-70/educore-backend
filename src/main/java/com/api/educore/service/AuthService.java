@@ -107,11 +107,16 @@ public class AuthService {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Utilizador nao encontrado"));
+
         List<User> users;
-        if (currentUser.getSchool() != null) {
+        if (currentUser.getRole() == UserRole.SUPER_ADMIN) {
+            // Super Admin vê TODOS os utilizadores do sistema
+            users = userRepository.findAll();
+        } else if (currentUser.getSchool() != null) {
+            // Outros utilizadores veem apenas os da sua escola
             users = userRepository.findBySchoolId(currentUser.getSchool().getId());
         } else {
-            users = userRepository.findAllWithSchool();
+            users = List.of();
         }
         return users.stream().map(this::toDTO).toList();
     }
