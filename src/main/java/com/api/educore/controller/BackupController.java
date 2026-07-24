@@ -415,9 +415,10 @@ public class BackupController {
 
         List<Assessment> assessments = assessmentRepository.findBySchoolId(schoolId);
         for (Assessment a : assessments) {
-            sql.append(String.format("INSERT INTO assessments (id, name, type, school_class_id, max_score, weight, date, trimester_id, school_id) VALUES (%d, '%s', '%s', %d, %.1f, %.1f, '%s', %s, %d) ON CONFLICT (id) DO NOTHING;\n",
+            sql.append(String.format("INSERT INTO assessments (id, name, type, school_class_id, subject_id, max_score, weight, date, trimester_id, school_id) VALUES (%d, '%s', '%s', %d, %d, %.1f, %.1f, '%s', %s, %d) ON CONFLICT (id) DO NOTHING;\n",
                     a.getId(), esc(a.getName()), esc(a.getType()),
                     a.getSchoolClass() != null ? a.getSchoolClass().getId() : 0,
+                    a.getSubject() != null ? a.getSubject().getId() : 0,
                     a.getMaxScore(), a.getWeight(),
                     a.getDate() != null ? a.getDate().toString() : "NULL",
                     a.getTrimester() != null ? a.getTrimester().getId().toString() : "NULL",

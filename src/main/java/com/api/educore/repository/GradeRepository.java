@@ -15,18 +15,9 @@ public interface GradeRepository extends JpaRepository<Grade, Long> {
     List<Grade> findByStudentIdAndAssessmentSchoolClassId(Long studentId, Long schoolClassId);
     List<Grade> findBySchoolId(Long schoolId);
 
-    // Buscar nota de um aluno, avaliacao e disciplina especificos
-    Optional<Grade> findByStudentIdAndAssessmentIdAndSubjectId(Long studentId, Long assessmentId, Long subjectId);
-
-    // Buscar notas de um aluno numa turma e trimestre
     @Query("SELECT g FROM Grade g JOIN g.assessment a WHERE g.student.id = :studentId AND a.schoolClass.id = :classId AND a.trimester.id = :trimesterId")
     List<Grade> findByStudentAndClassAndTrimester(@Param("studentId") Long studentId, @Param("classId") Long classId, @Param("trimesterId") Long trimesterId);
 
-    // Buscar notas de todos os alunos de uma avaliacao e disciplina
-    @Query("SELECT g FROM Grade g JOIN g.student s WHERE g.assessment.id = :assessmentId AND g.subject.id = :subjectId ORDER BY s.firstName, s.lastName")
-    List<Grade> findByAssessmentAndSubjectOrderedByStudent(@Param("assessmentId") Long assessmentId, @Param("subjectId") Long subjectId);
-
-    // Buscar todas as notas de uma turma e disciplina num trimestre
-    @Query("SELECT g FROM Grade g JOIN g.assessment a WHERE a.schoolClass.id = :classId AND g.subject.id = :subjectId AND a.trimester.id = :trimesterId")
-    List<Grade> findByClassAndSubjectAndTrimester(@Param("classId") Long classId, @Param("subjectId") Long subjectId, @Param("trimesterId") Long trimesterId);
+    @Query("SELECT g FROM Grade g JOIN g.student s WHERE g.assessment.id = :assessmentId ORDER BY s.firstName, s.lastName")
+    List<Grade> findByAssessmentOrderedByStudent(@Param("assessmentId") Long assessmentId);
 }

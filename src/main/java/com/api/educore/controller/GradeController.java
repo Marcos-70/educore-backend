@@ -5,7 +5,6 @@ import com.api.educore.dto.GradeDTO;
 import com.api.educore.dto.ReportCardDTO;
 import com.api.educore.service.GradeService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,15 +13,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/grades")
 @RequiredArgsConstructor
-@Slf4j
 public class GradeController {
 
     private final GradeService gradeService;
 
-    // Avaliacoes - independentes da disciplina
     @GetMapping("/assessments")
-    public ResponseEntity<List<AssessmentDTO>> findAssessments(@RequestParam Long classId) {
-        return ResponseEntity.ok(gradeService.findAssessments(classId));
+    public ResponseEntity<List<AssessmentDTO>> findAssessments(
+            @RequestParam Long classId, @RequestParam Long subjectId) {
+        return ResponseEntity.ok(gradeService.findAssessments(classId, subjectId));
     }
 
     @PostMapping("/assessments")
@@ -36,11 +34,9 @@ public class GradeController {
         return ResponseEntity.noContent().build();
     }
 
-    // Notas de uma avaliacao + disciplina
-    @GetMapping("/assessments/{assessmentId}/subjects/{subjectId}")
-    public ResponseEntity<List<GradeDTO>> findGradesByAssessmentAndSubject(
-            @PathVariable Long assessmentId, @PathVariable Long subjectId) {
-        return ResponseEntity.ok(gradeService.findGradesByAssessmentAndSubject(assessmentId, subjectId));
+    @GetMapping("/assessments/{assessmentId}")
+    public ResponseEntity<List<GradeDTO>> findGradesByAssessment(@PathVariable Long assessmentId) {
+        return ResponseEntity.ok(gradeService.findGradesByAssessment(assessmentId));
     }
 
     @GetMapping("/students/{studentId}")
@@ -55,18 +51,9 @@ public class GradeController {
 
     @PostMapping("/batch")
     public ResponseEntity<List<GradeDTO>> saveGrades(@RequestBody List<GradeDTO> dtos) {
-        List<GradeDTO> saved = new java.util.ArrayList<>();
-        for (GradeDTO dto : dtos) {
-            try {
-                saved.add(gradeService.saveGrade(dto));
-            } catch (Exception e) {
-                log.warn("Erro ao guardar nota do aluno {}: {}", dto.getStudentId(), e.getMessage());
-            }
-        }
-        return ResponseEntity.ok(saved);
+        return ResponseEntity.ok(dtos.stream().map(gradeService::saveGrade).toList());
     }
 
-    // Boletim de notas
     @GetMapping("/report-card")
     public ResponseEntity<ReportCardDTO> getReportCard(
             @RequestParam Long studentId,

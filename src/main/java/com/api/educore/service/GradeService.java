@@ -31,10 +31,9 @@ public class GradeService {
         return user != null ? user.getSchool() : null;
     }
 
-    // Avaliacoes - independentes da disciplina
-    public List<AssessmentDTO> findAssessments(Long classId) {
+    public List<AssessmentDTO> findAssessments(Long classId, Long subjectId) {
         School school = getCurrentSchool();
-        return assessmentRepository.findBySchoolClassId(classId)
+        return assessmentRepository.findBySchoolClassIdAndSubjectId(classId, subjectId)
                 .stream()
                 .filter(a -> school == null || (a.getSchool() != null && a.getSchool().getId().equals(school.getId())))
                 .map(this::toAssessmentDTO).collect(Collectors.toList());
@@ -50,6 +49,9 @@ public class GradeService {
         SchoolClass sc = classRepository.findById(dto.getSchoolClassId())
                 .orElseThrow(() -> new RuntimeException("Turma não encontrada"));
         a.setSchoolClass(sc);
+        Subject subject = subjectRepository.findById(dto.getSubjectId())
+                .orElseThrow(() -> new RuntimeException("Disciplina não encontrada"));
+        a.setSubject(subject);
         a.setSchool(getCurrentSchool());
         if (dto.getTrimesterId() != null) {
             Trimester t = trimesterRepository.findById(dto.getTrimesterId()).orElse(null);
@@ -62,10 +64,9 @@ public class GradeService {
         assessmentRepository.deleteById(id);
     }
 
-    // Notas de uma avaliacao + disciplina
-    public List<GradeDTO> findGradesByAssessmentAndSubject(Long assessmentId, Long subjectId) {
+    public List<GradeDTO> findGradesByAssessment(Long assessmentId) {
         School school = getCurrentSchool();
-        return gradeRepository.findByAssessmentAndSubjectOrderedByStudent(assessmentId, subjectId)
+        return gradeRepository.findByAssessmentOrderedByStudent(assessmentId)
                 .stream()
                 .filter(g -> school == null || (g.getSchool() != null && g.getSchool().getId().equals(school.getId())))
                 .map(this::toGradeDTO).collect(Collectors.toList());
@@ -84,21 +85,17 @@ public class GradeService {
                 .orElseThrow(() -> new RuntimeException("Aluno não encontrado"));
         Assessment assessment = assessmentRepository.findById(dto.getAssessmentId())
                 .orElseThrow(() -> new RuntimeException("Avaliação não encontrada"));
-        Subject subject = subjectRepository.findById(dto.getSubjectId())
-                .orElseThrow(() -> new RuntimeException("Disciplina não encontrada"));
 
-        Grade grade = gradeRepository.findByStudentIdAndAssessmentIdAndSubjectId(dto.getStudentId(), dto.getAssessmentId(), dto.getSubjectId())
+        Grade grade = gradeRepository.findByStudentIdAndAssessmentId(dto.getStudentId(), dto.getAssessmentId())
                 .orElse(new Grade());
         grade.setStudent(student);
         grade.setAssessment(assessment);
-        grade.setSubject(subject);
         grade.setScore(dto.getScore());
         grade.setObservations(dto.getObservations());
         grade.setSchool(getCurrentSchool());
         return toGradeDTO(gradeRepository.save(grade));
     }
 
-    // Boletim de notas de um aluno
     public ReportCardDTO getReportCard(Long studentId, Long classId, Long trimesterId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Aluno não encontrado"));
@@ -107,24 +104,21 @@ public class GradeService {
         Trimester trimester = trimesterRepository.findById(trimesterId)
                 .orElseThrow(() -> new RuntimeException("Trimestre não encontrado"));
 
-        // Buscar todas as notas do aluno na turma e trimestre
         List<Grade> grades = gradeRepository.findByStudentAndClassAndTrimester(studentId, classId, trimesterId);
 
-        // Agrupar por disciplina (agora usando g.getSubject())
         Map<Long, List<Grade>> gradesBySubject = new LinkedHashMap<>();
         for (Grade g : grades) {
-            Long subjectId = g.getSubject().getId();
+            Long subjectId = g.getAssessment().getSubject().getId();
             gradesBySubject.computeIfAbsent(subjectId, k -> new ArrayList<>()).add(g);
         }
 
-        // Construir notas por disciplina
         List<ReportCardDTO.SubjectGrades> subjects = new ArrayList<>();
         double totalAverage = 0;
         int subjectCount = 0;
 
         for (Map.Entry<Long, List<Grade>> entry : gradesBySubject.entrySet()) {
             List<Grade> subjectGrades = entry.getValue();
-            Subject subject = subjectGrades.get(0).getSubject();
+            Subject subject = subjectGrades.get(0).getAssessment().getSubject();
 
             List<ReportCardDTO.GradeEntry> gradeEntries = new ArrayList<>();
             double weightedSum = 0;
@@ -141,7 +135,6 @@ public class GradeService {
                         .weight(a.getWeight())
                         .build());
 
-                // Media ponderada da disciplina
                 double normalizedScore = (g.getScore() / a.getMaxScore()) * 20;
                 weightedSum += normalizedScore * a.getWeight();
                 totalWeight += a.getWeight();
@@ -161,7 +154,6 @@ public class GradeService {
             subjectCount++;
         }
 
-        // Media trimestral
         double overallAvg = subjectCount > 0 ? totalAverage / subjectCount : 0;
         overallAvg = Math.round(overallAvg * 100.0) / 100.0;
 
@@ -194,11 +186,8 @@ public class GradeService {
 
         return students.stream()
                 .map(s -> {
-                    try {
-                        return getReportCard(s.getId(), classId, trimesterId);
-                    } catch (Exception e) {
-                        return null;
-                    }
+                    try { return getReportCard(s.getId(), classId, trimesterId); }
+                    catch (Exception e) { return null; }
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
@@ -222,6 +211,8 @@ public class GradeService {
         dto.setType(a.getType());
         dto.setSchoolClassId(a.getSchoolClass().getId());
         dto.setSchoolClassName(a.getSchoolClass().getName());
+        dto.setSubjectId(a.getSubject().getId());
+        dto.setSubjectName(a.getSubject().getName());
         dto.setMaxScore(a.getMaxScore());
         dto.setWeight(a.getWeight());
         dto.setDate(a.getDate());
@@ -236,8 +227,6 @@ public class GradeService {
         dto.setStudentName(g.getStudent().getFullName());
         dto.setAssessmentId(g.getAssessment().getId());
         dto.setAssessmentName(g.getAssessment().getName());
-        dto.setSubjectId(g.getSubject().getId());
-        dto.setSubjectName(g.getSubject().getName());
         dto.setScore(g.getScore());
         dto.setObservations(g.getObservations());
         return dto;
