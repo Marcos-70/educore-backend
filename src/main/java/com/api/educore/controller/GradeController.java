@@ -2,6 +2,7 @@ package com.api.educore.controller;
 
 import com.api.educore.dto.AssessmentDTO;
 import com.api.educore.dto.GradeDTO;
+import com.api.educore.dto.ReportCardDTO;
 import com.api.educore.service.GradeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -51,5 +52,22 @@ public class GradeController {
     @PostMapping("/batch")
     public ResponseEntity<List<GradeDTO>> saveGrades(@RequestBody List<GradeDTO> dtos) {
         return ResponseEntity.ok(dtos.stream().map(gradeService::saveGrade).toList());
+    }
+
+    // Boletim de notas do aluno
+    @GetMapping("/report-card")
+    public ResponseEntity<ReportCardDTO> getReportCard(
+            @RequestParam Long studentId,
+            @RequestParam Long classId,
+            @RequestParam Long trimesterId) {
+        return ResponseEntity.ok(gradeService.getReportCard(studentId, classId, trimesterId));
+    }
+
+    // Boletim de todos os alunos de uma turma
+    @GetMapping("/report-cards")
+    public ResponseEntity<List<ReportCardDTO>> getReportCardsByClass(
+            @RequestParam Long classId,
+            @RequestParam Long trimesterId) {
+        return ResponseEntity.ok(gradeService.getReportCardsByClass(classId, trimesterId));
     }
 }
