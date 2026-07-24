@@ -532,10 +532,12 @@ public class SaftService {
         if (type == null) return "Servico";
         return switch (type) {
             case TUITION -> "Propina Mensal";
-            case ENROLLMENT -> "Matricula";
+            case REGISTRATION -> "Matricula";
             case TRANSPORT -> "Transporte Escolar";
             case LIBRARY -> "Servico de Biblioteca";
-            case REGISTRATION -> "Inscricao";
+            case EXAM -> "Exame";
+            case CERTIFICATE -> "Certificado";
+            case INSURANCE -> "Seguro";
             case OTHER -> "Outro Servico";
         };
     }
@@ -546,8 +548,10 @@ public class SaftService {
             case CASH -> "Dinheiro";
             case CARD -> "Cartao";
             case TRANSFER -> "Transferencia";
-            case CHECK -> "Cheque";
-            case MOBILE -> "Multicaixa Express";
+            case DEPOSIT -> "Deposito";
+            case MCX -> "Multicaixa Express";
+            case REFERENCE -> "Referencia";
+            case MIXED -> "Misto";
         };
     }
 
@@ -557,8 +561,10 @@ public class SaftService {
             case CASH -> "CC";
             case CARD -> "CC";
             case TRANSFER -> "CM";
-            case CHECK -> "CH";
-            case MOBILE -> "CD";
+            case DEPOSIT -> "CD";
+            case MCX -> "CC";
+            case REFERENCE -> "CM";
+            case MIXED -> "CC";
         };
     }
 
