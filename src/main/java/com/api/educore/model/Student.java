@@ -35,6 +35,8 @@ public class Student {
     private Gender gender;
 
     private String nationality;
+
+    @Column(nullable = false)
     private String nif;
     private String email;
     private String phone;

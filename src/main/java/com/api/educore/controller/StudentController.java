@@ -2,6 +2,7 @@ package com.api.educore.controller;
 
 import com.api.educore.dto.StudentDTO;
 import com.api.educore.service.StudentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,12 +32,12 @@ public class StudentController {
     }
 
     @PostMapping
-    public ResponseEntity<StudentDTO> create(@RequestBody StudentDTO dto) {
+    public ResponseEntity<StudentDTO> create(@Valid @RequestBody StudentDTO dto) {
         return ResponseEntity.ok(studentService.create(dto));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<StudentDTO> update(@PathVariable Long id, @RequestBody StudentDTO dto) {
+    public ResponseEntity<StudentDTO> update(@PathVariable Long id, @Valid @RequestBody StudentDTO dto) {
         return ResponseEntity.ok(studentService.update(id, dto));
     }
 
