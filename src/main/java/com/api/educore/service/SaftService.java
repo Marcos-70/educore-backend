@@ -29,14 +29,16 @@ public class SaftService {
         return user != null ? user.getSchool() : null;
     }
 
-    public SaftDTO generateSaft(int year) {
+    public SaftDTO generateSaft(String startStr, String endStr) {
         School school = getCurrentSchool();
         if (school == null) {
             throw new RuntimeException("Sem escola associada");
         }
 
-        LocalDate startDate = LocalDate.of(year, 1, 1);
-        LocalDate endDate = LocalDate.of(year, 12, 31);
+        LocalDateTime startDateTime = LocalDateTime.parse(startStr);
+        LocalDateTime endDateTime = LocalDateTime.parse(endStr);
+        LocalDate startDate = startDateTime.toLocalDate();
+        LocalDate endDate = endDateTime.toLocalDate();
 
         // Header
         SaftDTO.HeaderDTO header = SaftDTO.HeaderDTO.builder()
@@ -49,9 +51,9 @@ public class SaftService {
                 .phone(school.getPhone() != null ? school.getPhone() : "")
                 .email(school.getEmail() != null ? school.getEmail() : "")
                 .website(school.getWebsite() != null ? school.getWebsite() : "")
-                .fiscalYear(String.valueOf(year))
-                .startDate(startDate.format(DateTimeFormatter.ISO_LOCAL_DATE))
-                .endDate(endDate.format(DateTimeFormatter.ISO_LOCAL_DATE))
+                .fiscalYear(String.valueOf(startDate.getYear()))
+                .startDate(startStr)
+                .endDate(endStr)
                 .dateGenerated(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
                 .softwareVersion("MAWA ERP v1.0")
                 .build();
@@ -128,8 +130,8 @@ public class SaftService {
                 .build();
     }
 
-    public String generateSaftXml(int year) {
-        SaftDTO saft = generateSaft(year);
+    public String generateSaftXml(String startDate, String endDate) {
+        SaftDTO saft = generateSaft(startDate, endDate);
         return convertToXml(saft);
     }
 
