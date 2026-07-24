@@ -5,6 +5,7 @@ import com.api.educore.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -17,48 +18,51 @@ public class DataInitializer implements CommandLineRunner {
     private final SchoolRepository schoolRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserPermissionRepository userPermissionRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) {
-        if (userRepository.count() > 0) {
-            log.info("Base de dados já populada, ignorando inicialização");
-            return;
+        log.info("=== Inicializando dados do sistema ===");
+
+        // Forçar recriação das tabelas de users para garantir schema correto
+        try {
+            jdbcTemplate.execute("DROP TABLE IF EXISTS user_permissions CASCADE");
+            jdbcTemplate.execute("DROP TABLE IF EXISTS users CASCADE");
+            jdbcTemplate.execute("CREATE TABLE users (id BIGSERIAL PRIMARY KEY, first_name VARCHAR(255) NOT NULL, last_name VARCHAR(255) NOT NULL, username VARCHAR(255) NOT NULL UNIQUE, email VARCHAR(255) NOT NULL UNIQUE, password VARCHAR(255) NOT NULL, role VARCHAR(50) NOT NULL, position VARCHAR(255), phone VARCHAR(255), avatar TEXT, address VARCHAR(255), gender VARCHAR(50), sexo VARCHAR(50), active BOOLEAN DEFAULT TRUE, school_id BIGINT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+            jdbcTemplate.execute("CREATE TABLE user_permissions (id BIGSERIAL PRIMARY KEY, user_id BIGINT NOT NULL, permission VARCHAR(100) NOT NULL, enabled BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id, permission))");
+            log.info("Tabelas users e user_permissions recriadas com sucesso");
+        } catch (Exception e) {
+            log.warn("Aviso ao recriar tabelas: {}", e.getMessage());
         }
 
-        log.info("A inicializar dados padrão do sistema...");
-
-        // 1. Criar Super Admin SEM escola (gestor da plataforma)
+        // 1. Criar Super Admin SEM escola
         User superAdmin = createSuperAdmin();
 
         // 2. Criar escola padrão
         School school = getOrCreateSchool();
 
-        // 3. Criar utilizadores da escola (todos com escola atribuída)
-        User admin = createUser("Carlos", "Machado", "admin@educore.com", "Admin123!", UserRole.ADMIN, "Administrador Geral", "923 100 002", "MASCULINO", school);
-        User director = createUser("Fernanda", "Lopes", "director@educore.com", "Director123!", UserRole.DIRECTOR, "Director Geral", "923 100 003", "FEMININO", school);
-        User dirPed = createUser("Paulo", "Mendes", "dirped@educore.com", "DirPed123!", UserRole.DIRECTOR_PEDAGOGICO, "Director Pedagógico", "923 100 004", "MASCULINO", school);
-        User sec = createUser("Ana", "Silva", "secretario@educore.com", "Secretario123!", UserRole.SECRETARIO, "Secretário Administrativo", "923 100 005", "FEMININO", school);
-        User secPed = createUser("Maria", "Costa", "secped@educore.com", "SecPed123!", UserRole.SECRETARIA_PEDAGOGICA, "Secretária Pedagógica", "923 100 006", "FEMININO", school);
-        User prof = createUser("João", "Santos", "professor@educore.com", "Professor123!", UserRole.PROFESSOR, "Professor de Matemática", "923 100 007", "MASCULINO", school);
-        User tesoureiro = createUser("Ricardo", "Almeida", "tesoureiro@educore.com", "Tesoureiro123!", UserRole.TESOUREIRO, "Tesoureiro", "923 100 008", "MASCULINO", school);
-        User biblio = createUser("Teresa", "Oliveira", "bibliotecario@educore.com", "Bibliotec123!", UserRole.BIBLIOTECARIO, "Bibliotecária", "923 100 009", "FEMININO", school);
+        // 3. Criar utilizadores da escola
+        User admin = createUser("Carlos", "Machado", "admin@mawa.com", "Admin123!", UserRole.ADMIN, "Administrador Geral", "923 100 002", "MASCULINO", school);
+        User director = createUser("Fernanda", "Lopes", "director@mawa.com", "Director123!", UserRole.DIRECTOR, "Director Geral", "923 100 003", "FEMININO", school);
+        User dirPed = createUser("Paulo", "Mendes", "dirped@mawa.com", "DirPed123!", UserRole.DIRECTOR_PEDAGOGICO, "Director Pedagógico", "923 100 004", "MASCULINO", school);
+        User sec = createUser("Ana", "Silva", "secretario@mawa.com", "Secretario123!", UserRole.SECRETARIO, "Secretário Administrativo", "923 100 005", "FEMININO", school);
+        User secPed = createUser("Maria", "Costa", "secped@mawa.com", "SecPed123!", UserRole.SECRETARIA_PEDAGOGICA, "Secretária Pedagógica", "923 100 006", "FEMININO", school);
+        User prof = createUser("João", "Santos", "professor@mawa.com", "Professor123!", UserRole.PROFESSOR, "Professor de Matemática", "923 100 007", "MASCULINO", school);
+        User tesoureiro = createUser("Ricardo", "Almeida", "tesoureiro@mawa.com", "Tesoureiro123!", UserRole.TESOUREIRO, "Tesoureiro", "923 100 008", "MASCULINO", school);
+        User biblio = createUser("Teresa", "Oliveira", "bibliotecario@mawa.com", "Bibliotec123!", UserRole.BIBLIOTECARIO, "Bibliotecária", "923 100 009", "FEMININO", school);
 
-        // 4. Permissões do Super Admin (acesso total à plataforma)
+        // 4. Permissões do Super Admin
         createDefaultPermissions(superAdmin, new String[]{
-            // Gestão de Escolas
             "VIEW_ESCOLA", "CREATE_ESCOLA", "EDIT_ESCOLA", "DELETE_ESCOLA",
-            // Gestão de Utilizadores
             "VIEW_UTILIZADOR", "CREATE_UTILIZADOR", "EDIT_UTILIZADOR", "DELETE_UTILIZADOR",
-            // Gestão de Permissões
             "VIEW_PERMISSAO", "EDIT_PERMISSAO",
-            // Gestão Académica (acesso para suporte)
             "VIEW_ALUNO", "VIEW_PROFESSOR", "VIEW_TURMA", "VIEW_NOTA",
             "VIEW_ASSIDUIDADE", "VIEW_MATRICULA", "VIEW_FINANCEIRO",
             "VIEW_BIBLIOTECA", "VIEW_DOCUMENTO", "VIEW_TRANSPORTE",
             "VIEW_ACADEMICO", "VIEW_RELATORIO", "VIEW_CONFIGURACAO", "EDIT_CONFIGURACAO"
         });
 
-        // 5. Permissões do Admin da escola
+        // 5. Permissões do Admin
         createDefaultPermissions(admin, new String[]{
             "VIEW_ALUNO", "CREATE_ALUNO", "EDIT_ALUNO", "DELETE_ALUNO",
             "VIEW_PROFESSOR", "CREATE_PROFESSOR", "EDIT_PROFESSOR", "DELETE_PROFESSOR",
@@ -75,7 +79,6 @@ public class DataInitializer implements CommandLineRunner {
             "VIEW_UTILIZADOR", "CREATE_UTILIZADOR", "EDIT_UTILIZADOR"
         });
 
-        // 6. Permissões dos outros utilizadores
         createDefaultPermissions(director, new String[]{
             "VIEW_ALUNO", "CREATE_ALUNO", "EDIT_ALUNO",
             "VIEW_PROFESSOR", "CREATE_PROFESSOR", "EDIT_PROFESSOR",
@@ -133,44 +136,40 @@ public class DataInitializer implements CommandLineRunner {
         });
 
         log.info("=== Dados iniciais criados com sucesso ===");
-        log.info("Super Admin: superadmin@educore.com / SuperAdmin123!");
-        log.info("Admin Escola: admin@educore.com / Admin123!");
-        log.info("Escola padrão: {}", school.getName());
+        log.info("Super Admin: superadmin@mawa.com / SuperAdmin123!");
+        log.info("Admin: admin@mawa.com / Admin123!");
+        log.info("Escola: {}", school.getName());
     }
 
-    /**
-     * Criar Super Admin SEM escola associada.
-     * O Super Admin é o gestor da plataforma e não pertence a nenhuma escola.
-     */
     private User createSuperAdmin() {
         User superAdmin = User.builder()
                 .firstName("Super")
                 .lastName("Administrador")
                 .username("superadmin")
-                .email("superadmin@educore.com")
+                .email("superadmin@mawa.com")
                 .password(passwordEncoder.encode("SuperAdmin123!"))
                 .role(UserRole.SUPER_ADMIN)
                 .position("Super Administrador da Plataforma")
                 .phone("923 100 001")
                 .gender("MASCULINO")
-                .school(null) // Super Admin NÃO pertence a nenhuma escola
+                .school(null)
                 .active(true)
                 .build();
         return userRepository.save(superAdmin);
     }
 
     private School getOrCreateSchool() {
-        return schoolRepository.findByName("EduCore Academy")
+        return schoolRepository.findByName("ACADEMIA MAWA")
                 .orElseGet(() -> {
                     School s = School.builder()
-                            .name("EduCore Academy")
+                            .name("ACADEMIA MAWA")
                             .nif("541789236")
                             .address("Rua da Missão, 45")
                             .city("Luanda")
                             .country("Angola")
-                            .email("info@educoreacademy.edu.ao")
+                            .email("info@academiamawa.edu.ao")
                             .phone("+244 923 456 789")
-                            .website("www.educoreacademy.edu.ao")
+                            .website("www.academiamawa.edu.ao")
                             .motto("Educação de excelência")
                             .active(true)
                             .build();
@@ -190,7 +189,7 @@ public class DataInitializer implements CommandLineRunner {
                 .position(position)
                 .phone(phone)
                 .gender(gender)
-                .school(school) // Utilizadores da escola têm escola associada
+                .school(school)
                 .active(true)
                 .build();
         return userRepository.save(user);
