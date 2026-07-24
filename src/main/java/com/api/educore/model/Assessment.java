@@ -29,9 +29,7 @@ public class Assessment {
     @JoinColumn(name = "school_class_id", nullable = false)
     private SchoolClass schoolClass;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "subject_id", nullable = false)
-    private Subject subject;
+    // Avaliacao NAO depende de disciplina - usa-se ao lancar nota
 
     @Column(nullable = false)
     private double maxScore = 20.0;

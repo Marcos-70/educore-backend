@@ -17,10 +17,10 @@ public class GradeController {
 
     private final GradeService gradeService;
 
+    // Avaliacoes - independentes da disciplina
     @GetMapping("/assessments")
-    public ResponseEntity<List<AssessmentDTO>> findAssessments(
-            @RequestParam Long classId, @RequestParam Long subjectId) {
-        return ResponseEntity.ok(gradeService.findAssessments(classId, subjectId));
+    public ResponseEntity<List<AssessmentDTO>> findAssessments(@RequestParam Long classId) {
+        return ResponseEntity.ok(gradeService.findAssessments(classId));
     }
 
     @PostMapping("/assessments")
@@ -34,9 +34,11 @@ public class GradeController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/assessments/{assessmentId}")
-    public ResponseEntity<List<GradeDTO>> findGradesByAssessment(@PathVariable Long assessmentId) {
-        return ResponseEntity.ok(gradeService.findGradesByAssessment(assessmentId));
+    // Notas de uma avaliacao + disciplina
+    @GetMapping("/assessments/{assessmentId}/subjects/{subjectId}")
+    public ResponseEntity<List<GradeDTO>> findGradesByAssessmentAndSubject(
+            @PathVariable Long assessmentId, @PathVariable Long subjectId) {
+        return ResponseEntity.ok(gradeService.findGradesByAssessmentAndSubject(assessmentId, subjectId));
     }
 
     @GetMapping("/students/{studentId}")
@@ -54,7 +56,7 @@ public class GradeController {
         return ResponseEntity.ok(dtos.stream().map(gradeService::saveGrade).toList());
     }
 
-    // Boletim de notas do aluno
+    // Boletim de notas
     @GetMapping("/report-card")
     public ResponseEntity<ReportCardDTO> getReportCard(
             @RequestParam Long studentId,
@@ -63,7 +65,6 @@ public class GradeController {
         return ResponseEntity.ok(gradeService.getReportCard(studentId, classId, trimesterId));
     }
 
-    // Boletim de todos os alunos de uma turma
     @GetMapping("/report-cards")
     public ResponseEntity<List<ReportCardDTO>> getReportCardsByClass(
             @RequestParam Long classId,

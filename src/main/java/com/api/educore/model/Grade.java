@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "grades", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"student_id", "assessment_id"})
+    @UniqueConstraint(columnNames = {"student_id", "assessment_id", "subject_id"})
 })
 @Data
 @NoArgsConstructor
@@ -28,6 +28,10 @@ public class Grade {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assessment_id", nullable = false)
     private Assessment assessment;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subject_id", nullable = false)
+    private Subject subject;
 
     @Column(nullable = false)
     private double score;

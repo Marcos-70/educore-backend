@@ -11,8 +11,7 @@ public class AssessmentDTO {
     private String type;
     private Long schoolClassId;
     private String schoolClassName;
-    private Long subjectId;
-    private String subjectName;
+    // subjectId removido - avaliacao e independente da disciplina
     private double maxScore;
     private double weight;
     private LocalDate date;
