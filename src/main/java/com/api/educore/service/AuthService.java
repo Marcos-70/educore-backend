@@ -121,6 +121,27 @@ public class AuthService {
         return users.stream().map(this::toDTO).toList();
     }
 
+    public void deleteUser(Long id) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilizador nao encontrado"));
+
+        User targetUser = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilizador nao encontrado"));
+
+        // Nao permitir eliminar a si proprio
+        if (currentUser.getId().equals(targetUser.getId())) {
+            throw new RuntimeException("Nao e possivel eliminar o proprio utilizador");
+        }
+
+        // Nao permitir eliminar um Super Admin (a menos que o current seja Super Admin)
+        if (targetUser.getRole() == UserRole.SUPER_ADMIN && currentUser.getRole() != UserRole.SUPER_ADMIN) {
+            throw new RuntimeException("Nao e possivel eliminar um Super Administrador");
+        }
+
+        userRepository.deleteById(id);
+    }
+
     private UserDTO toDTO(User u) {
         return UserDTO.builder()
                 .id(u.getId())

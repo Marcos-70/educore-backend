@@ -52,4 +52,11 @@ public class AuthController {
     public ResponseEntity<List<UserDTO>> getUsers() {
         return ResponseEntity.ok(authService.getUsers());
     }
+
+    @DeleteMapping("/users/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<Map<String, String>> deleteUser(@PathVariable Long id) {
+        authService.deleteUser(id);
+        return ResponseEntity.ok(Map.of("message", "Utilizador eliminado com sucesso"));
+    }
 }
