@@ -5,6 +5,7 @@ import com.api.educore.dto.GradeDTO;
 import com.api.educore.dto.ReportCardDTO;
 import com.api.educore.service.GradeService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,6 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/grades")
 @RequiredArgsConstructor
+@Slf4j
 public class GradeController {
 
     private final GradeService gradeService;
@@ -53,7 +55,15 @@ public class GradeController {
 
     @PostMapping("/batch")
     public ResponseEntity<List<GradeDTO>> saveGrades(@RequestBody List<GradeDTO> dtos) {
-        return ResponseEntity.ok(dtos.stream().map(gradeService::saveGrade).toList());
+        List<GradeDTO> saved = new java.util.ArrayList<>();
+        for (GradeDTO dto : dtos) {
+            try {
+                saved.add(gradeService.saveGrade(dto));
+            } catch (Exception e) {
+                log.warn("Erro ao guardar nota do aluno {}: {}", dto.getStudentId(), e.getMessage());
+            }
+        }
+        return ResponseEntity.ok(saved);
     }
 
     // Boletim de notas

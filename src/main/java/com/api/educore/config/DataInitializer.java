@@ -35,6 +35,24 @@ public class DataInitializer implements CommandLineRunner {
             log.warn("Aviso ao recriar tabelas: {}", e.getMessage());
         }
 
+        // Migrar tabela grades - adicionar subject_id se nao existir
+        try {
+            jdbcTemplate.execute("ALTER TABLE grades ADD COLUMN IF NOT EXISTS subject_id BIGINT");
+            jdbcTemplate.execute("ALTER TABLE grades DROP CONSTRAINT IF EXISTS grades_student_id_assessment_id_key");
+            jdbcTemplate.execute("ALTER TABLE grades ADD CONSTRAINT grades_student_assessment_subject UNIQUE (student_id, assessment_id, subject_id)");
+            log.info("Tabela grades migrada com subject_id");
+        } catch (Exception e) {
+            log.warn("Migracao grades: {}", e.getMessage());
+        }
+
+        // Migrar tabela assessments - remover subject_id se existir
+        try {
+            jdbcTemplate.execute("ALTER TABLE assessments DROP COLUMN IF EXISTS subject_id");
+            log.info("Tabela assessments migrada - subject_id removido");
+        } catch (Exception e) {
+            log.warn("Migracao assessments: {}", e.getMessage());
+        }
+
         // 1. Criar Super Admin SEM escola
         User superAdmin = createSuperAdmin();
 
