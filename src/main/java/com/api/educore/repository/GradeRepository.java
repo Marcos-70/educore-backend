@@ -20,4 +20,7 @@ public interface GradeRepository extends JpaRepository<Grade, Long> {
 
     @Query("SELECT g FROM Grade g JOIN g.student s WHERE g.assessment.id = :assessmentId ORDER BY s.firstName, s.lastName")
     List<Grade> findByAssessmentOrderedByStudent(@Param("assessmentId") Long assessmentId);
+
+    @Query("SELECT g FROM Grade g JOIN g.assessment a WHERE a.schoolClass.id = :classId AND a.subject.id = :subjectId AND a.trimester.id = :trimesterId")
+    List<Grade> findByClassSubjectAndTrimester(@Param("classId") Long classId, @Param("subjectId") Long subjectId, @Param("trimesterId") Long trimesterId);
 }
