@@ -5,6 +5,8 @@ import com.api.educore.dto.GradeDTO;
 import com.api.educore.dto.ReportCardDTO;
 import com.api.educore.service.GradeService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +18,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class GradeController {
 
+    private static final Logger log = LoggerFactory.getLogger(GradeController.class);
     private final GradeService gradeService;
 
     @GetMapping("/assessments")
@@ -71,9 +74,14 @@ public class GradeController {
     }
 
     @GetMapping("/report-cards")
-    public ResponseEntity<List<ReportCardDTO>> getReportCardsByClass(
+    public ResponseEntity<?> getReportCardsByClass(
             @RequestParam Long classId,
             @RequestParam Long trimesterId) {
-        return ResponseEntity.ok(gradeService.getReportCardsByClass(classId, trimesterId));
+        try {
+            return ResponseEntity.ok(gradeService.getReportCardsByClass(classId, trimesterId));
+        } catch (Exception e) {
+            log.error("Error getting report cards: classId={}, trimesterId={}", classId, trimesterId, e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
+        }
     }
 }

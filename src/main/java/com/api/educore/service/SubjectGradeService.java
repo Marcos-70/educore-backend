@@ -28,21 +28,27 @@ public class SubjectGradeService {
     private final GradeRepository gradeRepository;
 
     private School getCurrentSchool() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email).orElse(null);
-        return user != null ? user.getSchool() : null;
+        try {
+            String email = SecurityContextHolder.getContext().getAuthentication().getName();
+            User user = userRepository.findByEmail(email).orElse(null);
+            return user != null ? user.getSchool() : null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     @Transactional(readOnly = true)
     public List<SubjectGradeDTO> listGrades(Long classId, Long subjectId, Long trimesterId) {
         School school = getCurrentSchool();
 
-        List<Enrollment> enrollments = enrollmentRepository.findBySchoolClassId(classId);
+        List<Enrollment> enrollments = enrollmentRepository.findBySchoolClassIdWithStudent(classId);
         List<Student> students = enrollments.stream()
                 .filter(e -> e.getStatus() == EnrollmentStatus.APPROVED)
                 .map(Enrollment::getStudent)
                 .filter(Objects::nonNull)
-                .distinct()
+                .collect(Collectors.toMap(Student::getId, s -> s, (a, b) -> a))
+                .values()
+                .stream()
                 .toList();
 
         List<SubjectGrade> existing = subjectGradeRepository
@@ -95,11 +101,17 @@ public class SubjectGradeService {
                     double totalWeight = 0;
                     for (Grade g : studentAssessmentGrades) {
                         Assessment a = g.getAssessment();
-                        double normalizedScore = (g.getScore() / a.getMaxScore()) * 20;
-                        weightedSum += normalizedScore * a.getWeight();
-                        totalWeight += a.getWeight();
+                        double maxScore = a.getMaxScore();
+                        double score = g.getScore();
+                        if (maxScore > 0 && !Double.isNaN(score)) {
+                            double normalizedScore = (score / maxScore) * 20;
+                            double weight = a.getWeight();
+                            weightedSum += normalizedScore * weight;
+                            totalWeight += weight;
+                        }
                     }
                     double avg = totalWeight > 0 ? weightedSum / totalWeight : 0;
+                    avg = Double.isNaN(avg) ? 0 : avg;
                     dto.setScore(Math.round(avg * 100.0) / 100.0);
                 } else {
                     dto.setScore(0);
@@ -151,17 +163,19 @@ public class SubjectGradeService {
     public List<ReportCardDTO> getReportCards(Long classId, Long trimesterId) {
         SchoolClass schoolClass = classRepository.findById(classId)
                 .orElseThrow(() -> new RuntimeException("Turma não encontrada"));
-        Trimester trimester = trimesterRepository.findById(trimesterId)
+        Trimester trimester = trimesterRepository.findByIdWithAcademicYear(trimesterId)
                 .orElseThrow(() -> new RuntimeException("Trimestre não encontrado"));
 
-        List<Enrollment> enrollments = enrollmentRepository.findBySchoolClassId(classId);
+        List<Enrollment> enrollments = enrollmentRepository.findBySchoolClassIdWithStudent(classId);
         List<Student> students = enrollments.stream()
                 .map(Enrollment::getStudent)
                 .filter(Objects::nonNull)
-                .distinct()
+                .collect(Collectors.toMap(Student::getId, s -> s, (a, b) -> a))
+                .values()
+                .stream()
                 .toList();
 
-        List<Assessment> allAssessments = assessmentRepository.findBySchoolClassId(classId);
+        List<Assessment> allAssessments = assessmentRepository.findBySchoolClassIdWithTrimesterAndSubject(classId);
         List<Assessment> trimesterAssessments = allAssessments.stream()
                 .filter(a -> a.getTrimester() != null && a.getTrimester().getId().equals(trimesterId))
                 .toList();
@@ -230,17 +244,21 @@ public class SubjectGradeService {
                     double totalWeight = 0;
                     for (Grade g : assessmentGrades) {
                         Assessment a = g.getAssessment();
+                        double maxScore = a.getMaxScore();
+                        double score = g.getScore();
                         gradeEntries.add(ReportCardDTO.GradeEntry.builder()
                                 .assessmentId(a.getId())
                                 .assessmentName(a.getName())
                                 .assessmentType(a.getType())
-                                .score(g.getScore())
-                                .maxScore(a.getMaxScore())
+                                .score(score)
+                                .maxScore(maxScore)
                                 .weight(a.getWeight())
                                 .build());
-                        double normalizedScore = (g.getScore() / a.getMaxScore()) * 20;
-                        weightedSum += normalizedScore * a.getWeight();
-                        totalWeight += a.getWeight();
+                        if (maxScore > 0 && !Double.isNaN(score)) {
+                            double normalizedScore = (score / maxScore) * 20;
+                            weightedSum += normalizedScore * a.getWeight();
+                            totalWeight += a.getWeight();
+                        }
                     }
                     subjectAvg = totalWeight > 0 ? weightedSum / totalWeight : 0;
                 } else {
@@ -248,6 +266,7 @@ public class SubjectGradeService {
                 }
 
                 subjectAvg = Math.round(subjectAvg * 100.0) / 100.0;
+                subjectAvg = Double.isNaN(subjectAvg) ? 0 : subjectAvg;
 
                 subjects.add(ReportCardDTO.SubjectGrades.builder()
                         .subjectId(subId)
@@ -263,6 +282,7 @@ public class SubjectGradeService {
 
             double overallAvg = subjectCount > 0 ? totalAverage / subjectCount : 0;
             overallAvg = Math.round(overallAvg * 100.0) / 100.0;
+            overallAvg = Double.isNaN(overallAvg) ? 0 : overallAvg;
             String classification = getClassification(overallAvg);
             boolean passed = overallAvg >= 10;
 

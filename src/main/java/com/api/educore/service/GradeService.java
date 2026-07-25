@@ -9,11 +9,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class GradeService {
 
     private final AssessmentRepository assessmentRepository;
@@ -26,11 +29,16 @@ public class GradeService {
     private final EnrollmentRepository enrollmentRepository;
 
     private School getCurrentSchool() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email).orElse(null);
-        return user != null ? user.getSchool() : null;
+        try {
+            String email = SecurityContextHolder.getContext().getAuthentication().getName();
+            User user = userRepository.findByEmail(email).orElse(null);
+            return user != null ? user.getSchool() : null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
+    @Transactional(readOnly = true)
     public List<AssessmentDTO> findAssessments(Long classId, Long subjectId, Long trimesterId) {
         School school = getCurrentSchool();
         List<Assessment> list;
@@ -81,6 +89,7 @@ public class GradeService {
         assessmentRepository.deleteById(id);
     }
 
+    @Transactional(readOnly = true)
     public List<GradeDTO> findGradesByAssessment(Long assessmentId) {
         School school = getCurrentSchool();
         return gradeRepository.findByAssessmentOrderedByStudent(assessmentId)
@@ -89,6 +98,7 @@ public class GradeService {
                 .map(this::toGradeDTO).collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<GradeDTO> findGradesByStudent(Long studentId) {
         School school = getCurrentSchool();
         return gradeRepository.findByStudentId(studentId)
@@ -117,12 +127,13 @@ public class GradeService {
         return toGradeDTO(gradeRepository.save(grade));
     }
 
+    @Transactional(readOnly = true)
     public ReportCardDTO getReportCard(Long studentId, Long classId, Long trimesterId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Aluno não encontrado"));
         SchoolClass schoolClass = classRepository.findById(classId)
                 .orElseThrow(() -> new RuntimeException("Turma não encontrada"));
-        Trimester trimester = trimesterRepository.findById(trimesterId)
+        Trimester trimester = trimesterRepository.findByIdWithAcademicYear(trimesterId)
                 .orElseThrow(() -> new RuntimeException("Trimestre não encontrado"));
 
         List<Grade> grades = gradeRepository.findByStudentAndClassAndTrimester(studentId, classId, trimesterId);
@@ -156,12 +167,17 @@ public class GradeService {
                         .weight(a.getWeight())
                         .build());
 
-                double normalizedScore = (g.getScore() / a.getMaxScore()) * 20;
-                weightedSum += normalizedScore * a.getWeight();
-                totalWeight += a.getWeight();
+                double maxScore = a.getMaxScore();
+                double score = g.getScore();
+                if (maxScore > 0 && !Double.isNaN(score)) {
+                    double normalizedScore = (score / maxScore) * 20;
+                    weightedSum += normalizedScore * a.getWeight();
+                    totalWeight += a.getWeight();
+                }
             }
 
             double subjectAvg = totalWeight > 0 ? weightedSum / totalWeight : 0;
+            subjectAvg = Double.isNaN(subjectAvg) ? 0 : subjectAvg;
 
             subjects.add(ReportCardDTO.SubjectGrades.builder()
                     .subjectId(subject.getId())
@@ -177,6 +193,7 @@ public class GradeService {
 
         double overallAvg = subjectCount > 0 ? totalAverage / subjectCount : 0;
         overallAvg = Math.round(overallAvg * 100.0) / 100.0;
+        overallAvg = Double.isNaN(overallAvg) ? 0 : overallAvg;
 
         String classification = getClassification(overallAvg);
         boolean passed = overallAvg >= 10;
@@ -194,15 +211,18 @@ public class GradeService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
     public List<ReportCardDTO> getReportCardsByClass(Long classId, Long trimesterId) {
         SchoolClass schoolClass = classRepository.findById(classId)
                 .orElseThrow(() -> new RuntimeException("Turma não encontrada"));
 
-        List<Enrollment> enrollments = enrollmentRepository.findBySchoolClassId(classId);
+        List<Enrollment> enrollments = enrollmentRepository.findBySchoolClassIdWithStudent(classId);
         List<Student> students = enrollments.stream()
                 .map(Enrollment::getStudent)
                 .filter(Objects::nonNull)
-                .distinct()
+                .collect(Collectors.toMap(Student::getId, s -> s, (a, b) -> a))
+                .values()
+                .stream()
                 .toList();
 
         return students.stream()
