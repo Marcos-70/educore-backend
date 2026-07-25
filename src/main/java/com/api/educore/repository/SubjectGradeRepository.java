@@ -25,6 +25,8 @@ public interface SubjectGradeRepository extends JpaRepository<SubjectGrade, Long
     @Query("SELECT sg FROM SubjectGrade sg " +
            "LEFT JOIN FETCH sg.student " +
            "LEFT JOIN FETCH sg.subject " +
+           "LEFT JOIN FETCH sg.trimester " +
+           "LEFT JOIN FETCH sg.schoolClass " +
            "WHERE sg.student.id = :studentId AND sg.subject.id = :subjectId AND sg.trimester.id = :trimesterId")
     Optional<SubjectGrade> findByStudentIdAndSubjectIdAndTrimesterId(
             @Param("studentId") Long studentId, @Param("subjectId") Long subjectId, @Param("trimesterId") Long trimesterId);
