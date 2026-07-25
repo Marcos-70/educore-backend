@@ -124,7 +124,9 @@ public class SubjectGradeService {
 
     public List<SubjectGradeDTO> saveBatch(List<SubjectGradeDTO> dtos) {
         School school = getCurrentSchool();
-        List<SubjectGradeDTO> saved = new ArrayList<>();
+
+        List<SubjectGrade> toSave = new ArrayList<>();
+        List<SubjectGradeDTO> result = new ArrayList<>();
 
         for (SubjectGradeDTO dto : dtos) {
             Student student = studentRepository.findById(dto.getStudentId())
@@ -144,32 +146,29 @@ public class SubjectGradeService {
                     .findByStudentIdAndSubjectIdAndTrimesterId(
                             dto.getStudentId(), dto.getSubjectId(), dto.getTrimesterId());
 
-            if (existing.isPresent()) {
-                if (dto.getId() == null) {
-                    throw new RuntimeException(
-                            "Já existe uma nota para o aluno " + student.getFullName() +
-                            " na disciplina " + subject.getName() +
-                            " no trimestre " + trimester.getName() +
-                            ". Não é permitido registar mais de uma nota por disciplina por trimestre.");
-                }
-                SubjectGrade sg = existing.get();
-                sg.setScore(dto.getScore());
-                sg.setObservations(dto.getObservations());
-                sg.setSchool(school);
-                saved.add(toDTO(subjectGradeRepository.save(sg)));
-            } else {
-                SubjectGrade sg = new SubjectGrade();
-                sg.setStudent(student);
-                sg.setSubject(subject);
-                sg.setTrimester(trimester);
-                sg.setSchoolClass(schoolClass);
-                sg.setScore(dto.getScore());
-                sg.setObservations(dto.getObservations());
-                sg.setSchool(school);
-                saved.add(toDTO(subjectGradeRepository.save(sg)));
+            if (existing.isPresent() && dto.getId() == null) {
+                throw new RuntimeException(
+                        "Já existe uma nota para o aluno " + student.getFullName() +
+                        " na disciplina " + subject.getName() +
+                        " no trimestre " + trimester.getName() +
+                        ". Não é permitido registar mais de uma nota por disciplina por trimestre.");
             }
+
+            SubjectGrade sg = existing.orElse(new SubjectGrade());
+            sg.setStudent(student);
+            sg.setSubject(subject);
+            sg.setTrimester(trimester);
+            sg.setSchoolClass(schoolClass);
+            sg.setScore(dto.getScore());
+            sg.setObservations(dto.getObservations());
+            sg.setSchool(school);
+            toSave.add(sg);
         }
-        return saved;
+
+        for (SubjectGrade sg : toSave) {
+            result.add(toDTO(subjectGradeRepository.save(sg)));
+        }
+        return result;
     }
 
     @Transactional(readOnly = true)
