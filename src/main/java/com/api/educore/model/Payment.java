@@ -70,6 +70,7 @@ public class Payment {
     private String referenceNumber;
 
     private boolean cancelled;
+    private String creditNoteNumber;
     private String cancellationReason;
     private String cancellationObservation;
     private LocalDateTime cancelledAt;

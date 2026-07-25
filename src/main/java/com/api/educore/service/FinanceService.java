@@ -56,7 +56,6 @@ public class FinanceService {
         School school = getCurrentSchool();
         if (school == null) return List.of();
         return paymentRepository.findBySchoolId(school.getId()).stream()
-                .filter(p -> !p.isCancelled())
                 .map(this::toDTO).collect(Collectors.toList());
     }
 
@@ -64,7 +63,7 @@ public class FinanceService {
         School school = getCurrentSchool();
         if (school == null) return List.of();
         return paymentRepository.findBySchoolId(school.getId()).stream()
-                .filter(p -> p.getStatus() == status && !p.isCancelled())
+                .filter(p -> p.getStatus() == status)
                 .map(this::toDTO).collect(Collectors.toList());
     }
 
@@ -83,10 +82,16 @@ public class FinanceService {
             for (String m : months) {
                 String month = m.trim();
                 if (!month.isEmpty()) {
-                    boolean alreadyPaid = paymentRepository.existsByStudentIdAndMonthInField(
-                            dto.getStudentId(), month);
+                    boolean alreadyPaid;
+                    if (dto.getAcademicYearId() != null) {
+                        alreadyPaid = paymentRepository.existsByStudentIdAndMonthInFieldAndAcademicYearId(
+                                dto.getStudentId(), month, dto.getAcademicYearId());
+                    } else {
+                        alreadyPaid = paymentRepository.existsByStudentIdAndMonthInField(
+                                dto.getStudentId(), month);
+                    }
                     if (alreadyPaid) {
-                        throw new RuntimeException("O mes " + month + " ja foi pago para este aluno.");
+                        throw new RuntimeException("O mês " + month + " já foi facturado para este aluno.");
                     }
                 }
             }
@@ -139,11 +144,11 @@ public class FinanceService {
         String creditNoteNumber = generateSequentialReceiptNumber("NC-");
 
         payment.setCancelled(true);
+        payment.setCreditNoteNumber(creditNoteNumber);
         payment.setCancellationReason(reason);
         payment.setCancellationObservation(observation);
         payment.setCancelledAt(LocalDateTime.now());
         payment.setStatus(PaymentStatus.CANCELLED);
-        payment.setReceiptNumber(creditNoteNumber);
 
         return toDTO(paymentRepository.save(payment));
     }
@@ -382,6 +387,7 @@ public class FinanceService {
         dto.setReferenceEntity(p.getReferenceEntity());
         dto.setReferenceNumber(p.getReferenceNumber());
         dto.setCancelled(p.isCancelled());
+        dto.setCreditNoteNumber(p.getCreditNoteNumber());
         dto.setCancellationReason(p.getCancellationReason());
         dto.setCancellationObservation(p.getCancellationObservation());
         dto.setCancelledAt(p.getCancelledAt());

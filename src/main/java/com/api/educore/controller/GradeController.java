@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/grades")
@@ -19,8 +20,10 @@ public class GradeController {
 
     @GetMapping("/assessments")
     public ResponseEntity<List<AssessmentDTO>> findAssessments(
-            @RequestParam Long classId, @RequestParam Long subjectId) {
-        return ResponseEntity.ok(gradeService.findAssessments(classId, subjectId));
+            @RequestParam Long classId,
+            @RequestParam Long subjectId,
+            @RequestParam(required = false) Long trimesterId) {
+        return ResponseEntity.ok(gradeService.findAssessments(classId, subjectId, trimesterId));
     }
 
     @PostMapping("/assessments")
@@ -50,8 +53,13 @@ public class GradeController {
     }
 
     @PostMapping("/batch")
-    public ResponseEntity<List<GradeDTO>> saveGrades(@RequestBody List<GradeDTO> dtos) {
-        return ResponseEntity.ok(dtos.stream().map(gradeService::saveGrade).toList());
+    public ResponseEntity<?> saveGrades(@RequestBody List<GradeDTO> dtos) {
+        try {
+            List<GradeDTO> saved = dtos.stream().map(gradeService::saveGrade).toList();
+            return ResponseEntity.ok(saved);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/report-card")

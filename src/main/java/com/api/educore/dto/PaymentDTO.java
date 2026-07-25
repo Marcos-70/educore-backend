@@ -39,6 +39,7 @@ public class PaymentDTO {
     private String referenceEntity;
     private String referenceNumber;
     private boolean cancelled;
+    private String creditNoteNumber;
     private String cancellationReason;
     private String cancellationObservation;
     private LocalDateTime cancelledAt;

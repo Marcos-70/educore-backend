@@ -31,17 +31,35 @@ public class GradeService {
         return user != null ? user.getSchool() : null;
     }
 
-    public List<AssessmentDTO> findAssessments(Long classId, Long subjectId) {
+    public List<AssessmentDTO> findAssessments(Long classId, Long subjectId, Long trimesterId) {
         School school = getCurrentSchool();
-        return assessmentRepository.findBySchoolClassIdAndSubjectId(classId, subjectId)
-                .stream()
+        List<Assessment> list;
+        if (trimesterId != null) {
+            list = assessmentRepository.findBySchoolClassIdAndSubjectIdAndTrimesterId(classId, subjectId, trimesterId);
+        } else {
+            list = assessmentRepository.findBySchoolClassIdAndSubjectId(classId, subjectId);
+        }
+        return list.stream()
                 .filter(a -> school == null || (a.getSchool() != null && a.getSchool().getId().equals(school.getId())))
                 .map(this::toAssessmentDTO).collect(Collectors.toList());
     }
 
     public AssessmentDTO createAssessment(AssessmentDTO dto) {
+        if (dto.getName() == null || dto.getName().isBlank()) {
+            throw new RuntimeException("Nome da avaliação é obrigatório");
+        }
+        if (dto.getTrimesterId() == null) {
+            throw new RuntimeException("Trimestre é obrigatório");
+        }
+
+        boolean exists = assessmentRepository.existsBySchoolClassIdAndSubjectIdAndTrimesterIdAndNameIgnoreCase(
+                dto.getSchoolClassId(), dto.getSubjectId(), dto.getTrimesterId(), dto.getName().trim());
+        if (exists) {
+            throw new RuntimeException("Já existe uma avaliação com este nome para esta disciplina no trimestre selecionado");
+        }
+
         Assessment a = new Assessment();
-        a.setName(dto.getName());
+        a.setName(dto.getName().trim());
         a.setType(dto.getType());
         a.setMaxScore(dto.getMaxScore());
         a.setWeight(dto.getWeight());
@@ -53,10 +71,9 @@ public class GradeService {
                 .orElseThrow(() -> new RuntimeException("Disciplina não encontrada"));
         a.setSubject(subject);
         a.setSchool(getCurrentSchool());
-        if (dto.getTrimesterId() != null) {
-            Trimester t = trimesterRepository.findById(dto.getTrimesterId()).orElse(null);
-            a.setTrimester(t);
-        }
+        Trimester t = trimesterRepository.findById(dto.getTrimesterId())
+                .orElseThrow(() -> new RuntimeException("Trimestre não encontrado"));
+        a.setTrimester(t);
         return toAssessmentDTO(assessmentRepository.save(a));
     }
 
@@ -85,6 +102,10 @@ public class GradeService {
                 .orElseThrow(() -> new RuntimeException("Aluno não encontrado"));
         Assessment assessment = assessmentRepository.findById(dto.getAssessmentId())
                 .orElseThrow(() -> new RuntimeException("Avaliação não encontrada"));
+
+        if (dto.getScore() < 0 || dto.getScore() > assessment.getMaxScore()) {
+            throw new RuntimeException("A nota deve estar entre 0 e " + assessment.getMaxScore());
+        }
 
         Grade grade = gradeRepository.findByStudentIdAndAssessmentId(dto.getStudentId(), dto.getAssessmentId())
                 .orElse(new Grade());

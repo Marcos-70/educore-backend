@@ -44,8 +44,20 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     boolean existsByStudentIdAndMonthAndCancelledFalse(Long studentId, String month);
 
-    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Payment p WHERE p.student.id = :studentId AND p.cancelled = false AND CONCAT(',', p.month, ',') LIKE CONCAT('%,', :month, ',%')")
+    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Payment p WHERE p.student.id = :studentId AND p.cancelled = false AND CONCAT(',', REPLACE(p.month, ' ', ''), ',') LIKE CONCAT('%,', REPLACE(:month, ' ', ''), ',%')")
     boolean existsByStudentIdAndMonthInField(@Param("studentId") Long studentId, @Param("month") String month);
 
+    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Payment p WHERE p.student.id = :studentId AND p.cancelled = false AND p.academicYearId = :academicYearId AND CONCAT(',', REPLACE(p.month, ' ', ''), ',') LIKE CONCAT('%,', REPLACE(:month, ' ', ''), ',%')")
+    boolean existsByStudentIdAndMonthInFieldAndAcademicYearId(@Param("studentId") Long studentId, @Param("month") String month, @Param("academicYearId") Long academicYearId);
+
+    @Query("SELECT p.month FROM Payment p WHERE p.student.id = :studentId AND p.cancelled = false AND p.academicYearId = :academicYearId AND p.month IS NOT NULL AND p.month <> ''")
+    List<String> findMonthFieldsByStudentIdAndAcademicYearId(@Param("studentId") Long studentId, @Param("academicYearId") Long academicYearId);
+
+    @Query("SELECT p.month FROM Payment p WHERE p.student.id = :studentId AND p.cancelled = false AND p.month IS NOT NULL AND p.month <> ''")
+    List<String> findMonthFieldsByStudentId(@Param("studentId") Long studentId);
+
     List<Payment> findByStudentIdAndCancelledFalse(Long studentId);
+
+    @Query("SELECT p FROM Payment p WHERE p.school.id = :schoolId ORDER BY p.createdAt DESC")
+    List<Payment> findRecentBySchoolId(@Param("schoolId") Long schoolId);
 }
