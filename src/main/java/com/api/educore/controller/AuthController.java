@@ -48,6 +48,11 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "Perfil atualizado com sucesso"));
     }
 
+    @GetMapping("/profile")
+    public ResponseEntity<UserDTO> getProfile() {
+        return ResponseEntity.ok(authService.getProfile());
+    }
+
     @GetMapping("/users")
     public ResponseEntity<List<UserDTO>> getUsers() {
         return ResponseEntity.ok(authService.getUsers());

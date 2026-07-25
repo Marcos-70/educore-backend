@@ -100,7 +100,15 @@ public class AuthService {
         user.setFirstName(request.getName());
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
+        user.setAddress(request.getAddress());
         userRepository.save(user);
+    }
+
+    public UserDTO getProfile() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilizador nao encontrado"));
+        return toDTO(user);
     }
 
     public List<UserDTO> getUsers() {
