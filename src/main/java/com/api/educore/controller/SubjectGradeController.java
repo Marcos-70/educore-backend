@@ -55,4 +55,17 @@ public class SubjectGradeController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
         }
     }
+
+    @GetMapping("/report-cards/student")
+    public ResponseEntity<?> getStudentReportCard(
+            @RequestParam Long studentId,
+            @RequestParam Long classId,
+            @RequestParam Long trimesterId) {
+        try {
+            return ResponseEntity.ok(subjectGradeService.getStudentReportCard(studentId, classId, trimesterId));
+        } catch (Exception e) {
+            log.error("Error getting student report card: studentId={}, classId={}, trimesterId={}", studentId, classId, trimesterId, e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
+        }
+    }
 }

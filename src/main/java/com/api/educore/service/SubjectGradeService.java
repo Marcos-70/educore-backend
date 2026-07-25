@@ -140,21 +140,34 @@ public class SubjectGradeService {
                 throw new RuntimeException("A nota deve estar entre 0 e 20");
             }
 
-            SubjectGrade sg = subjectGradeRepository
+            Optional<SubjectGrade> existing = subjectGradeRepository
                     .findByStudentIdAndSubjectIdAndTrimesterId(
-                            dto.getStudentId(), dto.getSubjectId(), dto.getTrimesterId())
-                    .orElse(new SubjectGrade());
+                            dto.getStudentId(), dto.getSubjectId(), dto.getTrimesterId());
 
-            sg.setStudent(student);
-            sg.setSubject(subject);
-            sg.setTrimester(trimester);
-            sg.setSchoolClass(schoolClass);
-            sg.setScore(dto.getScore());
-            sg.setObservations(dto.getObservations());
-            sg.setSchool(school);
-
-            SubjectGrade savedSg = subjectGradeRepository.save(sg);
-            saved.add(toDTO(savedSg));
+            if (existing.isPresent()) {
+                if (dto.getId() == null) {
+                    throw new RuntimeException(
+                            "Já existe uma nota para o aluno " + student.getFullName() +
+                            " na disciplina " + subject.getName() +
+                            " no trimestre " + trimester.getName() +
+                            ". Não é permitido registar mais de uma nota por disciplina por trimestre.");
+                }
+                SubjectGrade sg = existing.get();
+                sg.setScore(dto.getScore());
+                sg.setObservations(dto.getObservations());
+                sg.setSchool(school);
+                saved.add(toDTO(subjectGradeRepository.save(sg)));
+            } else {
+                SubjectGrade sg = new SubjectGrade();
+                sg.setStudent(student);
+                sg.setSubject(subject);
+                sg.setTrimester(trimester);
+                sg.setSchoolClass(schoolClass);
+                sg.setScore(dto.getScore());
+                sg.setObservations(dto.getObservations());
+                sg.setSchool(school);
+                saved.add(toDTO(subjectGradeRepository.save(sg)));
+            }
         }
         return saved;
     }
@@ -300,6 +313,114 @@ public class SubjectGradeService {
         }
 
         return reportCards;
+    }
+
+    @Transactional(readOnly = true)
+    public ReportCardDTO getStudentReportCard(Long studentId, Long classId, Long trimesterId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Aluno não encontrado"));
+        SchoolClass schoolClass = classRepository.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Turma não encontrada"));
+        Trimester trimester = trimesterRepository.findByIdWithAcademicYear(trimesterId)
+                .orElseThrow(() -> new RuntimeException("Trimestre não encontrado"));
+
+        List<SubjectGrade> directGrades = subjectGradeRepository
+                .findByStudentIdAndTrimesterId(studentId, trimesterId);
+        Map<Long, SubjectGrade> directGradeMap = directGrades.stream()
+                .filter(sg -> sg.getSchoolClass().getId().equals(classId))
+                .collect(Collectors.toMap(sg -> sg.getSubject().getId(), sg -> sg, (a, b) -> a));
+
+        List<Grade> assessmentGrades = gradeRepository
+                .findByStudentAndClassAndTrimester(studentId, classId, trimesterId);
+        Map<Long, List<Grade>> assessmentGradesBySubject = assessmentGrades.stream()
+                .collect(Collectors.groupingBy(g -> g.getAssessment().getSubject().getId()));
+
+        Set<Long> allSubjectIds = new LinkedHashSet<>();
+        allSubjectIds.addAll(directGradeMap.keySet());
+        allSubjectIds.addAll(assessmentGradesBySubject.keySet());
+
+        List<ReportCardDTO.SubjectGrades> subjects = new ArrayList<>();
+        double totalAverage = 0;
+        int subjectCount = 0;
+
+        for (Long subId : allSubjectIds) {
+            Subject subject = subjectRepository.findById(subId).orElse(null);
+            if (subject == null) continue;
+
+            SubjectGrade directGrade = directGradeMap.get(subId);
+            List<Grade> studentAssessmentGrades = assessmentGradesBySubject.getOrDefault(subId, List.of());
+
+            List<ReportCardDTO.GradeEntry> gradeEntries = new ArrayList<>();
+            double subjectAvg;
+
+            if (directGrade != null) {
+                gradeEntries.add(ReportCardDTO.GradeEntry.builder()
+                        .assessmentId(directGrade.getId())
+                        .assessmentName(subject.getName())
+                        .assessmentType("subject_grade")
+                        .score(directGrade.getScore())
+                        .maxScore(20.0)
+                        .weight(1.0)
+                        .build());
+                subjectAvg = directGrade.getScore();
+            } else if (!studentAssessmentGrades.isEmpty()) {
+                double weightedSum = 0;
+                double totalWeight = 0;
+                for (Grade g : studentAssessmentGrades) {
+                    Assessment a = g.getAssessment();
+                    double maxScore = a.getMaxScore();
+                    double score = g.getScore();
+                    gradeEntries.add(ReportCardDTO.GradeEntry.builder()
+                            .assessmentId(a.getId())
+                            .assessmentName(a.getName())
+                            .assessmentType(a.getType())
+                            .score(score)
+                            .maxScore(maxScore)
+                            .weight(a.getWeight())
+                            .build());
+                    if (maxScore > 0 && !Double.isNaN(score)) {
+                        double normalizedScore = (score / maxScore) * 20;
+                        weightedSum += normalizedScore * a.getWeight();
+                        totalWeight += a.getWeight();
+                    }
+                }
+                subjectAvg = totalWeight > 0 ? weightedSum / totalWeight : 0;
+            } else {
+                subjectAvg = 0;
+            }
+
+            subjectAvg = Math.round(subjectAvg * 100.0) / 100.0;
+            subjectAvg = Double.isNaN(subjectAvg) ? 0 : subjectAvg;
+
+            subjects.add(ReportCardDTO.SubjectGrades.builder()
+                    .subjectId(subId)
+                    .subjectName(subject.getName())
+                    .grades(gradeEntries)
+                    .subjectAverage(subjectAvg)
+                    .assessmentCount(gradeEntries.size())
+                    .build());
+
+            totalAverage += subjectAvg;
+            subjectCount++;
+        }
+
+        double overallAvg = subjectCount > 0 ? totalAverage / subjectCount : 0;
+        overallAvg = Math.round(overallAvg * 100.0) / 100.0;
+        overallAvg = Double.isNaN(overallAvg) ? 0 : overallAvg;
+        String classification = getClassification(overallAvg);
+        boolean passed = overallAvg >= 10;
+
+        return ReportCardDTO.builder()
+                .studentId(student.getId())
+                .studentName(student.getFullName())
+                .className(schoolClass.getName())
+                .academicYear(trimester.getAcademicYear().getName())
+                .trimesterName(trimester.getName())
+                .subjects(subjects)
+                .overallAverage(overallAvg)
+                .classification(classification)
+                .passed(passed)
+                .build();
     }
 
     private String getClassification(double average) {
