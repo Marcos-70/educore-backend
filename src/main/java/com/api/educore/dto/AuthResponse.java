@@ -18,4 +18,5 @@ public class AuthResponse {
     private Long userId;
     private Long schoolId;
     private String schoolName;
+    private String avatar;
 }

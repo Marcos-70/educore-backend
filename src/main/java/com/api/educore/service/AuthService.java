@@ -49,6 +49,7 @@ public class AuthService {
                 .userId(user.getId())
                 .schoolId(user.getSchool() != null ? user.getSchool().getId() : null)
                 .schoolName(user.getSchool() != null ? user.getSchool().getName() : null)
+                .avatar(user.getAvatar())
                 .build();
     }
 
@@ -101,6 +102,9 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
         user.setAddress(request.getAddress());
+        if (request.getAvatar() != null) {
+            user.setAvatar(request.getAvatar());
+        }
         userRepository.save(user);
     }
 
